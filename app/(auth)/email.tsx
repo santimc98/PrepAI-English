@@ -4,6 +4,7 @@ import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import AuthCard from '@/components/AuthCard';
 import { supabase } from '@/lib/supabase';
+import tw from '@/lib/tw';
 
 function getRedirectTo(): string {
   // Usa deep link en nativo y URL absoluta en web
@@ -72,35 +73,35 @@ export default function EmailAuthScreen() {
   };
 
   return (
-    <View className="flex-1 items-center justify-center bg-light px-4">
+    <View style={tw`flex-1 items-center justify-center bg-light px-4`}>
       <AuthCard title="Acceso con email" subtitle="Recibe un enlace o usa contraseña">
-        <View className="w-full gap-3">
-          <Text className="text-navy">Email</Text>
+        <View style={tw`w-full gap-3`}>
+          <Text style={tw`text-navy`}>Email</Text>
           <TextInput
             inputMode="email"
             autoCapitalize="none"
             keyboardType="email-address"
             placeholder="ejemplo@mail.com"
-            className="rounded-xl border bg-white px-4 py-3"
+            style={tw`rounded-xl border bg-white px-4 py-3`}
             value={email}
             onChangeText={setEmail}
           />
           {!emailValid && email.length > 0 && (
-            <Text className="text-accent text-xs mt-1">Introduce un email válido</Text>
+            <Text style={tw`text-accent text-xs mt-1`}>Introduce un email válido</Text>
           )}
 
           {isRegister && (
             <>
-              <Text className="text-navy mt-3">Contraseña</Text>
+              <Text style={tw`text-navy mt-3`}>Contraseña</Text>
               <TextInput
                 secureTextEntry
                 placeholder="••••••••"
-                className="rounded-xl border bg-white px-4 py-3"
+                style={tw`rounded-xl border bg-white px-4 py-3`}
                 value={password}
                 onChangeText={setPassword}
               />
               {!!passwordError && (
-                <Text className="text-accent text-xs mt-1">{passwordError}</Text>
+                <Text style={tw`text-accent text-xs mt-1`}>{passwordError}</Text>
               )}
             </>
           )}
@@ -108,32 +109,32 @@ export default function EmailAuthScreen() {
           <Pressable
             disabled={loading || !emailValid}
             onPress={sendMagicLink}
-            className="mt-4 items-center rounded-xl bg-royal px-5 py-3"
+            style={tw`mt-4 items-center rounded-xl bg-royal px-5 py-3`}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Enviar enlace mágico</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={tw`text-white font-semibold`}>Enviar enlace mágico</Text>}
           </Pressable>
 
           <Pressable
             disabled={loading || !emailValid || (!isRegister && !password) || (!!passwordError)}
             onPress={submitPasswordFlow}
-            className="mt-3 items-center rounded-xl bg-accent px-5 py-3"
+            style={tw`mt-3 items-center rounded-xl bg-accent px-5 py-3`}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white font-semibold">{isRegister ? 'Crear cuenta' : 'Entrar con contraseña'}</Text>
+              <Text style={tw`text-white font-semibold`}>{isRegister ? 'Crear cuenta' : 'Entrar con contraseña'}</Text>
             )}
           </Pressable>
 
-          <Pressable onPress={() => setIsRegister((v) => !v)} className="mt-2 items-center">
-            <Text className="text-navy text-sm">
+          <Pressable onPress={() => setIsRegister((v) => !v)} style={tw`mt-2 items-center`}>
+            <Text style={tw`text-navy text-sm`}>
               {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Crear una >'}
             </Text>
           </Pressable>
 
           {alert && (
-            <View className={`mt-4 rounded-xl px-4 py-3 ${alert.type === 'error' ? 'bg-[#FDECEC]' : 'bg-[#E8F2FF]'}`}>
-              <Text className={`${alert.type === 'error' ? 'text-accent' : 'text-royal'} text-center`}>{alert.text}</Text>
+            <View style={[tw`mt-4 rounded-xl px-4 py-3`, { backgroundColor: alert.type === 'error' ? '#FDECEC' : '#E8F2FF' }]}>
+              <Text style={[tw`text-center`, alert.type === 'error' ? tw`text-accent` : tw`text-royal`]}>{alert.text}</Text>
             </View>
           )}
         </View>

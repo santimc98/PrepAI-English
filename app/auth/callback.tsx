@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
+import tw from '@/lib/tw';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
@@ -18,8 +19,8 @@ export default function AuthCallbackScreen() {
   }, [router, url]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-light">
-      <Text className="text-primary text-xl font-semibold">Autenticando…</Text>
+    <View style={tw`flex-1 items-center justify-center bg-light`}>
+      <Text style={tw`text-primary text-xl font-semibold`}>Autenticando…</Text>
     </View>
   );
 }
