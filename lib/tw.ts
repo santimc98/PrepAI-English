@@ -1,6 +1,6 @@
 import { create } from 'twrnc';
 
-// Puedes extender colores para “brand”
+// Extiende colores "brand" usados en el tema
 const tw = create({
   theme: {
     extend: {
