@@ -3,12 +3,15 @@ import { Slot, useRouter, useSegments, Stack } from "expo-router";
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
 import tw from "@/lib/tw";
-import { View } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
+import { UiThemeContext } from '@/providers/UiTheme';
+import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { ToastProvider } from '@/providers/Toast';
 
 function RootNavigationGate() {
   const segments = useSegments();
@@ -30,6 +33,7 @@ function RootNavigationGate() {
 
 export default function RootLayout() {
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light');
+  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_600SemiBold });
 
   useEffect(() => {
     (async () => {
@@ -40,18 +44,30 @@ export default function RootLayout() {
     })();
   }, []);
 
+  if (!fontsLoaded) {
+    return (
+      <View style={[tw`flex-1 items-center justify-center`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
-      <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "transparent" },
-          }}
-        />
-        <RootNavigationGate />
-      </SafeAreaView>
+      <UiThemeContext.Provider value={{ colorScheme, setColorScheme }}>
+        <ToastProvider>
+          <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "transparent" },
+              }}
+            />
+            <RootNavigationGate />
+          </SafeAreaView>
+        </ToastProvider>
+      </UiThemeContext.Provider>
     </AuthProvider>
   );
 }

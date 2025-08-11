@@ -1,10 +1,11 @@
-import { Text, TextProps } from 'react-native';
+import { TextProps } from 'react-native';
 import tw from '@/lib/tw';
+import { AppText } from '@/components/ui/Typography';
 
 export default function Heading({ children, style, ...rest }: TextProps & { children: React.ReactNode }) {
   return (
-    <Text style={[tw`text-2xl font-semibold`, style]} {...rest}>
+    <AppText weight="semibold" style={[tw`text-2xl`, style]} {...rest}>
       {children}
-    </Text>
+    </AppText>
   );
 }

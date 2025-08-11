@@ -9,11 +9,15 @@ import Heading from '@/components/ui/Heading';
 import TextMuted from '@/components/ui/TextMuted';
 import { Card } from '@/components/ui/Card';
 import { useRouter } from 'expo-router';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useToast } from '@/providers/Toast';
 
 export default function ProgressScreen() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const { session } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const toast = useToast();
   
   const loadAttempts = async () => {
     try {
@@ -38,9 +42,11 @@ export default function ProgressScreen() {
       }
     } catch (e) {
       console.warn('[Progress] Failed to load cloud attempts, falling back to local:', e);
+      try { toast.error('No se pudo cargar desde la nube'); } catch {}
       const localAttempts = await getAttempts();
       setAttempts(localAttempts);
     }
+    setIsLoading(false);
   };
   
   useEffect(() => {
@@ -61,7 +67,13 @@ export default function ProgressScreen() {
     >
       <Container>
         <Heading>Progreso</Heading>
-        {attempts.length === 0 ? (
+        {isLoading ? (
+          <View style={tw`mt-3`}> 
+            <Card style={tw`mt-2`}><Skeleton height={18} /></Card>
+            <Card style={tw`mt-2`}><Skeleton height={18} /></Card>
+            <Card style={tw`mt-2`}><Skeleton height={18} /></Card>
+          </View>
+        ) : attempts.length === 0 ? (
           <Card style={tw`mt-3`}>
             <TextMuted>Aún no hay intentos. Empieza un mock desde Exams.</TextMuted>
           </Card>

@@ -5,9 +5,11 @@ import AuthCard from '@/components/AuthCard';
 import tw from '@/lib/tw';
 import { Button } from '@/components/ui/Button';
 import Container from '@/components/layout/Container';
+import { useToast } from '@/providers/Toast';
 
 export default function LoginScreen() {
   const { signInWithProvider, initializing } = useAuth();
+  const toast = useToast();
 
   return (
     <Container>
@@ -16,7 +18,13 @@ export default function LoginScreen() {
           <View style={tw`w-full gap-3`}>
             <Button
               title="Continuar con Google"
-              onPress={() => signInWithProvider('google')}
+              onPress={async () => {
+                try {
+                  await signInWithProvider('google');
+                } catch (e) {
+                  try { toast.error('No se pudo iniciar sesión'); } catch {}
+                }
+              }}
               style={[tw`w-full`, { backgroundColor: '#22c55e' }]}
               textStyle={tw`font-semibold`}
             />

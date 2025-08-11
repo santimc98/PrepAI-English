@@ -6,6 +6,7 @@ import { saveAttempt } from '@/lib/storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { createAttempt, finishAttempt, saveAnswer } from '@/lib/db';
 import tw from '@/lib/tw';
+import { useToast } from '@/providers/Toast';
 
 export default function ExamRunner() {
   const params = useLocalSearchParams<{ id: string; data?: string }>();
@@ -22,6 +23,7 @@ export default function ExamRunner() {
   }, [params.data]);
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const toast = useToast();
 
   // Crear attempt en nube si hay sesión y USE_SUPABASE está habilitado
   useMemo(async () => {
@@ -109,8 +111,10 @@ export default function ExamRunner() {
                 
                 // Finalizar attempt
                 await finishAttempt(cloudAttemptId, score);
+                try { toast.success('Intento guardado'); } catch {}
               } catch (e) {
                 console.warn('[ExamRunner] Failed to save to cloud, falling back to local:', e);
+                try { toast.error('Error al guardar en la nube'); } catch {}
                 // Fallback a local
                 await saveAttempt({
                   id: String(Date.now()),
