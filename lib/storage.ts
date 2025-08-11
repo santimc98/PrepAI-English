@@ -39,6 +39,7 @@ export type Attempt = {
   title: string;
   level: ExamMock['level'];
   createdAt: number;
+  finishedAt?: number;
   score?: number;
 };
 

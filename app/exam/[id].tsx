@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TextInput, Pressable } from 'react-native';
 import type { ExamMock } from '@/types/exam';
 import { useMemo, useState } from 'react';
+import { saveAttempt } from '@/lib/storage';
 
 export default function ExamRunner() {
   const params = useLocalSearchParams<{ id: string; data?: string }>();
@@ -57,9 +58,26 @@ export default function ExamRunner() {
 
         <Pressable
           className="mt-8 items-center rounded-xl bg-accent px-5 py-3"
-          onPress={() => router.back()}
+          onPress={async () => {
+            const total = mock.questions.length;
+            const correct = mock.questions.reduce((acc, q) => {
+              const given = answers[q.id];
+              return acc + (q.answer && given && given.trim().toLowerCase() === q.answer.trim().toLowerCase() ? 1 : 0);
+            }, 0);
+            const score = total ? Math.round((correct / total) * 100) : undefined;
+            await saveAttempt({
+              id: String(Date.now()),
+              examId: mock.id,
+              title: mock.title,
+              level: mock.level,
+              createdAt: Date.now(),
+              finishedAt: Date.now(),
+              score,
+            });
+            router.replace('/(tabs)/progress');
+          }}
         >
-          <Text className="text-white font-semibold">Terminar</Text>
+          <Text className="text-white font-semibold">Terminar y guardar</Text>
         </Pressable>
       </ScrollView>
     </View>
