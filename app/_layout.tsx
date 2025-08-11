@@ -1,7 +1,6 @@
 // app/_layout.tsx     ← raíz de la carpeta app
 import { Slot, useRouter, useSegments, Stack } from "expo-router";
 import { View } from "react-native";
-import "./global.css";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+/* Nota: evitar @import para minimizar interacción con transformadores de Babel/Metro */
 
 /* Alturas completas para que flex-1 ocupe pantalla en web */
 html, body, #root { height: 100%; }
