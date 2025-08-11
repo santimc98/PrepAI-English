@@ -51,7 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       provider,
       options: {
         redirectTo,
-        skipBrowserRedirect: true,
+        skipBrowserRedirect: Platform.OS !== 'web' ? true : false,
+        queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined,
       },
     });
     if (error) throw error;
