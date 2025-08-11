@@ -4,7 +4,10 @@ import { Slot, useRouter, useSegments, Stack } from "expo-router";
 import "./global.css";
 import tw from "@/lib/tw";
 import { View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 
 function RootNavigationGate() {
@@ -26,9 +29,21 @@ function RootNavigationGate() {
 }
 
 export default function RootLayout() {
+  const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const pref = await AsyncStorage.getItem('ui:theme');
+        if (pref === 'dark' || pref === 'light') setColorScheme(pref);
+      } catch {}
+    })();
+  }, []);
+
   return (
     <AuthProvider>
-      <View style={tw`flex-1 bg-slate-50`}>
+      <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -36,7 +51,7 @@ export default function RootLayout() {
           }}
         />
         <RootNavigationGate />
-      </View>
+      </SafeAreaView>
     </AuthProvider>
   );
 }

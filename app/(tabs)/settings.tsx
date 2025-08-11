@@ -1,18 +1,45 @@
-import { View, Text } from "react-native";
+import { View, Text, Switch } from "react-native";
 import { useAuth } from "@/providers/AuthProvider";
 import tw from '@/lib/tw';
 import { Button } from '@/components/ui/Button';
+import Container from '@/components/layout/Container';
+import Heading from '@/components/ui/Heading';
+import TextMuted from '@/components/ui/TextMuted';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
-  return (
-    <View style={tw`flex-1`}>
-      <View style={tw`w-full max-w-3xl mx-auto p-4 gap-3`}>
-        <Text style={tw`text-2xl font-semibold`}>Ajustes</Text>
-        <Text style={tw`text-slate-600`}>{user?.email}</Text>
+  const [dark, setDark] = useState(false);
 
-        <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-4`, { backgroundColor: '#ef4444' }]} />
+  useEffect(() => {
+    (async () => {
+      try {
+        const pref = await AsyncStorage.getItem('ui:theme');
+        setDark(pref === 'dark');
+      } catch {}
+    })();
+  }, []);
+
+  const toggleTheme = async () => {
+    const next = !dark;
+    setDark(next);
+    try {
+      await AsyncStorage.setItem('ui:theme', next ? 'dark' : 'light');
+    } catch {}
+  };
+
+  return (
+    <Container>
+      <Heading>Ajustes</Heading>
+      <TextMuted>{user?.email}</TextMuted>
+
+      <View style={tw`mt-4 flex-row items-center justify-between`}>
+        <Text style={tw`font-medium`}>Modo oscuro (beta)</Text>
+        <Switch value={dark} onValueChange={toggleTheme} />
       </View>
-    </View>
+
+      <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-6`, { backgroundColor: '#ef4444' }]} />
+    </Container>
   );
 }
