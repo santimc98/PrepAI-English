@@ -1,5 +1,7 @@
 // app/_layout.tsx     ← raíz de la carpeta app
 import { Slot, useRouter, useSegments, Stack } from "expo-router";
+// Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
+import "./global.css";
 import { View } from "react-native";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";

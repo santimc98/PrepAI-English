@@ -1,9 +1,25 @@
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, ViewStyle, TextStyle } from 'react-native';
+import tw from '@/lib/tw';
 
-export function Button({ title, onPress, className = '' }: { title: string; onPress?: () => void; className?: string }) {
+export function Button({
+  title,
+  onPress,
+  style,
+  textStyle,
+}: {
+  title: string;
+  onPress?: () => void;
+  style?: ViewStyle | ViewStyle[];
+  textStyle?: TextStyle | TextStyle[];
+}) {
   return (
-    <Pressable onPress={onPress} className={`rounded-2xl px-4 py-3 bg-brand-600 active:opacity-90 ${className}`}>
-      <Text className="text-white text-center font-medium">{title}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[tw`rounded-2xl px-4 py-3`, { backgroundColor: '#1d4ed8' }, style]}
+    >
+      <Text style={[tw`text-white text-center font-semibold`, textStyle]}>
+        {title}
+      </Text>
     </Pressable>
   );
 }

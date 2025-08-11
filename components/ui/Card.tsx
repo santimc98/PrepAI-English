@@ -1,7 +1,12 @@
-import { View } from 'react-native';
+import { View, ViewStyle } from 'react-native';
+import tw from '@/lib/tw';
 
-export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <View className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${className}`}>{children}</View>;
+export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle | ViewStyle[] }) {
+  return (
+    <View style={[tw`rounded-2xl border border-slate-200 bg-white p-4`, { shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }, style]}>
+      {children}
+    </View>
+  );
 }
 
 

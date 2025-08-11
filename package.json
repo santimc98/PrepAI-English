@@ -11,7 +11,8 @@
     "dev": "expo start --tunnel",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc -p . --noEmit",
-    "build:web": "expo export --platform web --dump-sourcemap --non-interactive"
+    "build:web": "expo export --platform web --dump-sourcemap --non-interactive",
+    "clean:metro": "node -e \"const fs=require('fs'); const os=require('os'); const p=require('path'); const tmp=os.tmpdir(); ['metro-cache','metro','react-native','@expo'].forEach(d=>{try{fs.rmSync(p.join(tmp,d),{recursive:true,force:true});}catch{}}); console.log('Metro cache cleaned');\""
   },
   "jest": {
     "preset": "jest-expo"
@@ -53,7 +54,6 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "jest": "^29.2.1",
     "jest-expo": "~53.0.9",
-    "react-native-dotenv": "^3.4.11",
     "react-native-svg": "^15.11.2",
     "react-test-renderer": "19.0.0",
     "tailwindcss": "^3.4.17",
