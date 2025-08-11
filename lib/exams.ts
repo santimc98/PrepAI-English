@@ -56,7 +56,39 @@ export async function generateExamViaEdge(params: { level: string; sections: str
   return await resp.json();
 }
 
-// TODO: Integrar esta función en el flujo principal cuando se despliegue la Edge Function
-// Por ahora, solo está disponible para pruebas manuales
+export async function getExam(params: { level: string; sections: string[] }): Promise<ExamMock> {
+  const useCloud = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
+  if (useCloud) {
+    try {
+      const res: any = await generateExamViaEdge(params);
+      // Adaptar respuesta mock de la edge a nuestro ExamMock
+      const questions: Question[] = (res.sections || []).flatMap((s: any) =>
+        (s.items || []).map((it: any) => ({
+          id: String(it.id),
+          section: String(s.name || 'reading').toLowerCase(),
+          prompt: String(it.prompt || ''),
+          choices: Array.isArray(it.options)
+            ? it.options.map((opt: string) => ({ id: `${it.id}-${opt}`, text: String(opt) }))
+            : undefined,
+          answer: it.answer != null ? String(it.answer) : undefined,
+        }))
+      );
+      return {
+        id: Math.random().toString(36).slice(2, 10),
+        title: res.title ?? `Mock ${params.level}`,
+        level: (res.level as ExamMock['level']) ?? (params.level as any),
+        createdAt: Date.now(),
+        questions,
+      };
+    } catch (e) {
+      // Fallback local si falla la edge
+      return createSimpleMock(params.level as any);
+    }
+  }
+  // Local por defecto
+  return createSimpleMock(params.level as any);
+}
+
+// TODO: Integrar esta función en más pantallas cuando se despliegue la Edge Function
 
 
