@@ -2,6 +2,7 @@
 import { Slot, useRouter, useSegments, Stack } from "expo-router";
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
+import tw from "@/lib/tw";
 import { View } from "react-native";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
@@ -27,7 +28,7 @@ function RootNavigationGate() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <View className="flex-1 bg-slate-50">
+      <View style={tw`flex-1 bg-slate-50`}>
         <Stack
           screenOptions={{
             headerShown: false,
