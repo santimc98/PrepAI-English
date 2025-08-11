@@ -4,7 +4,6 @@ import { Home, BookOpen, BarChart2, Settings } from "lucide-react-native";
 export default function TabLayout() {
   return (
     <Tabs
-      sceneContainerStyle={{ backgroundColor: "#F2F6FF" }}
       screenOptions={{
         tabBarActiveTintColor: "#0A2A66",
         tabBarInactiveTintColor: "#9CA3AF",
