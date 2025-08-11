@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { getAttempts, type Attempt } from '@/lib/storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { listMyAttempts } from '@/lib/db';
@@ -18,6 +18,7 @@ export default function ProgressScreen() {
   const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
+  const router = useRouter();
   
   const loadAttempts = async () => {
     try {
@@ -79,13 +80,15 @@ export default function ProgressScreen() {
           </Card>
         ) : (
           attempts.map((a) => (
-            <Card key={a.id} style={tw`mt-4`}>
-              <Text style={tw`font-semibold`}>{a.title} • {a.level}</Text>
-              <Text style={tw`mt-1`}>
-                Puntuación: <Text style={tw`font-semibold text-slate-700`}>{a.score ?? '-'}%</Text>
-              </Text>
-              <Text style={tw`text-xs mt-1 text-slate-600`}>{new Date(a.createdAt).toLocaleString()}</Text>
-            </Card>
+            <Pressable key={a.id} onPress={() => router.push({ pathname: '/exam/[id]/review' as any, params: { id: a.id } } as any)}>
+              <Card style={tw`mt-4`}>
+                <Text style={tw`font-semibold`}>{a.title} • {a.level}</Text>
+                <Text style={tw`mt-1`}>
+                  Puntuación: <Text style={tw`font-semibold text-slate-700`}>{a.score ?? '-'}%</Text>
+                </Text>
+                <Text style={tw`text-xs mt-1 text-slate-600`}>{new Date(a.createdAt).toLocaleString()}</Text>
+              </Card>
+            </Pressable>
           ))
         )}
       </Container>

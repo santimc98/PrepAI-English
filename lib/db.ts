@@ -65,4 +65,20 @@ export async function listMyAttempts() {
   return data;
 }
 
+export async function getAttemptWithAnswers(attemptId: string) {
+  const { data: attempt, error: err1 } = await supabase
+    .from('attempts')
+    .select('*')
+    .eq('id', attemptId)
+    .single();
+  if (err1) throw err1;
+  const { data: answers, error: err2 } = await supabase
+    .from('attempt_answers')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .order('created_at', { ascending: true });
+  if (err2) throw err2;
+  return { attempt, answers };
+}
+
 

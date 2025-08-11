@@ -124,6 +124,13 @@ export default function ExamRunner() {
                   createdAt: Date.now(),
                   finishedAt: Date.now(),
                   score,
+                  examSnapshot: mock,
+                  answers: Object.entries(answers).map(([questionId, answer]) => {
+                    const question = mock.questions.find(q => q.id === questionId);
+                    const isCorrect = question?.answer && answer.trim().toLowerCase() === question.answer.trim().toLowerCase();
+                    return { questionId, answer, correct: !!isCorrect, points: isCorrect ? 1 : 0 };
+                  }),
+                  source: 'local',
                 });
               }
             } else {
@@ -136,6 +143,13 @@ export default function ExamRunner() {
                 createdAt: Date.now(),
                 finishedAt: Date.now(),
                 score,
+                examSnapshot: mock,
+                answers: Object.entries(answers).map(([questionId, answer]) => {
+                  const question = mock.questions.find(q => q.id === questionId);
+                  const isCorrect = question?.answer && answer.trim().toLowerCase() === question.answer.trim().toLowerCase();
+                  return { questionId, answer, correct: !!isCorrect, points: isCorrect ? 1 : 0 };
+                }),
+                source: 'local',
               });
             }
             
