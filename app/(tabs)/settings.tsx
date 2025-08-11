@@ -18,8 +18,8 @@ export default function SettingsScreen() {
       try {
         const pref = await AsyncStorage.getItem('ui:theme');
         setDark(pref === 'dark');
-        const cloud = await AsyncStorage.getItem('ui:useCloud');
-        setUseCloud(cloud === 'true');
+        const cloud = await AsyncStorage.getItem('dev:cloudExam');
+        setUseCloud(cloud == null ? true : cloud === 'true');
       } catch {}
     })();
   }, []);
@@ -36,7 +36,7 @@ export default function SettingsScreen() {
     const next = !useCloud;
     setUseCloud(next);
     try {
-      await AsyncStorage.setItem('ui:useCloud', next ? 'true' : 'false');
+      await AsyncStorage.setItem('dev:cloudExam', next ? 'true' : 'false');
     } catch {}
   };
 
@@ -52,7 +52,7 @@ export default function SettingsScreen() {
 
       {process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' ? (
         <View style={tw`mt-4 flex-row items-center justify-between`}>
-          <Text style={tw`font-medium`}>Usar nube (Edge/Supabase)</Text>
+          <Text style={tw`font-medium`}>Usar nube para generar exámenes (dev)\n<TextMuted>(requiere .env EXPO_PUBLIC_USE_SUPABASE=true)</TextMuted></Text>
           <Switch value={useCloud} onValueChange={toggleCloud} />
         </View>
       ) : null}
