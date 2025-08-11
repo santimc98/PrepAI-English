@@ -12,7 +12,7 @@ module.exports = {
     sourceType: 'module',
     project: false,
   },
-  plugins: ['@typescript-eslint', 'react-hooks', 'import'],
+  plugins: ['@typescript-eslint', 'react-hooks'],
   settings: {
     react: { version: 'detect' },
   },
@@ -29,9 +29,13 @@ module.exports = {
     'react/react-in-jsx-scope': 'off', // TS + react-jsx
     'react/jsx-no-target-blank': 'off',
     'react/jsx-no-undef': 'off',
+    // Disable import plugin rules temporarily to avoid resolver issues
     'import/order': 'off',
     'import/no-unresolved': 'off',
     'import/no-extraneous-dependencies': 'off',
+    'import/newline-after-import': 'off',
+    'import/no-duplicates': 'off',
+    'import/namespace': 'off',
     'react-native/no-inline-styles': 'off',
     'react-native/no-raw-text': 'off',
     'react-hooks/exhaustive-deps': 'off',

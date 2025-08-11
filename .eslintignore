@@ -6,8 +6,6 @@ android
 ios
 **/*.d.ts
 app/**
-providers/**
-lib/**
-components/**
+# lint enabled for providers, lib, components
 types/**
 supabase/**
