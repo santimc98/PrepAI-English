@@ -4,6 +4,11 @@ import { getAttempts, type Attempt } from '@/lib/storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { listMyAttempts } from '@/lib/db';
 import tw from '@/lib/tw';
+import Container from '@/components/layout/Container';
+import Heading from '@/components/ui/Heading';
+import TextMuted from '@/components/ui/TextMuted';
+import { Card } from '@/components/ui/Card';
+import { useRouter } from 'expo-router';
 
 export default function ProgressScreen() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -54,22 +59,24 @@ export default function ProgressScreen() {
       contentContainerStyle={tw`p-4`}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <View style={tw`w-full max-w-3xl mx-auto`}>
-        <Text style={tw`text-2xl font-semibold`}>Progreso</Text>
+      <Container>
+        <Heading>Progreso</Heading>
         {attempts.length === 0 ? (
-          <Text style={tw`mt-3 text-slate-600`}>Aún no hay intentos guardados.</Text>
+          <Card style={tw`mt-3`}>
+            <TextMuted>Aún no hay intentos. Empieza un mock desde Exams.</TextMuted>
+          </Card>
         ) : (
           attempts.map((a) => (
-            <View key={a.id} style={[tw`mt-4 rounded-2xl border border-slate-200 bg-white p-4`, { shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }]}>
+            <Card key={a.id} style={tw`mt-4`}>
               <Text style={tw`font-semibold`}>{a.title} • {a.level}</Text>
               <Text style={tw`mt-1`}>
                 Puntuación: <Text style={tw`font-semibold text-slate-700`}>{a.score ?? '-'}%</Text>
               </Text>
               <Text style={tw`text-xs mt-1 text-slate-600`}>{new Date(a.createdAt).toLocaleString()}</Text>
-            </View>
+            </Card>
           ))
         )}
-      </View>
+      </Container>
     </ScrollView>
   );
 }
