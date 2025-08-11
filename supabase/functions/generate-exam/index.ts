@@ -1,8 +1,9 @@
 // supabase/functions/generate-exam/index.ts
 // Deno Deploy / Supabase Edge compatible
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
