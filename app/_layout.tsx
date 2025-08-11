@@ -1,5 +1,7 @@
 // app/_layout.tsx     ← raíz de la carpeta app
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Slot, useRouter, useSegments, Stack } from "expo-router";
+import { View } from "react-native";
+import "./global.css";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 
@@ -24,7 +26,15 @@ function RootNavigationGate() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigationGate />
+      <View className="flex-1 bg-slate-50">
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+        <RootNavigationGate />
+      </View>
     </AuthProvider>
   );
 }

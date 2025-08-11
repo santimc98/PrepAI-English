@@ -49,24 +49,26 @@ export default function ProgressScreen() {
 
   return (
     <ScrollView 
-      className="flex-1 bg-light" 
+      className="flex-1"
       contentContainerStyle={{ padding: 16 }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <Text className="text-primary text-3xl font-extrabold">Progreso</Text>
-      {attempts.length === 0 ? (
-        <Text className="mt-3 text-royal">Aún no hay intentos guardados.</Text>
-      ) : (
-        attempts.map((a) => (
-          <View key={a.id} className="mt-4 rounded-xl bg-white p-4">
-            <Text className="font-semibold text-navy">{a.title} • {a.level}</Text>
-            <Text className="mt-1">Puntuación: <Text className="font-semibold text-royal">{a.score ?? '-'}%</Text></Text>
-            <Text className="text-xs mt-1">{new Date(a.createdAt).toLocaleString()}</Text>
-          </View>
-        ))
-      )}
+      <View className="mx-auto w-full max-w-3xl">
+        <Text className="text-2xl font-semibold text-primary">Progreso</Text>
+        {attempts.length === 0 ? (
+          <Text className="mt-3 text-royal">Aún no hay intentos guardados.</Text>
+        ) : (
+          attempts.map((a) => (
+            <View key={a.id} className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <Text className="font-semibold text-navy">{a.title} • {a.level}</Text>
+              <Text className="mt-1">Puntuación: <Text className="font-semibold text-royal">{a.score ?? '-'}%</Text></Text>
+              <Text className="text-xs mt-1 text-slate-600">{new Date(a.createdAt).toLocaleString()}</Text>
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }

@@ -5,30 +5,32 @@ import * as Speech from 'expo-speech';
 export default function Home() {
   const router = useRouter();
   return (
-    <View className="flex-1 items-center justify-center bg-light px-6">
-      <Text className="text-primary text-4xl font-extrabold">PrepAI English</Text>
-      <Text className="text-royal mt-2">Mock exams powered by AI</Text>
+    <View className="flex-1">
+      <View className="mx-auto w-full max-w-3xl p-4 gap-3">
+        <Text className="text-2xl font-semibold text-primary">PrepAI English</Text>
+        <Text className="text-royal">Mock exams powered by AI</Text>
 
-      <Link
-        href="/(tabs)/exams"
-        className="mt-8 px-5 py-3 rounded-xl bg-accent text-white font-semibold"
-      >
-        Empezar un simulacro
-      </Link>
+        <Link
+          href="/(tabs)/exams"
+          className="mt-4 px-4 py-3 rounded-2xl bg-brand-600 text-white text-center"
+        >
+          Empezar un simulacro
+        </Link>
 
-      <Pressable
-        className="mt-4 px-5 py-3 rounded-xl bg-royal"
-        onPress={() => Speech.speak('Welcome to PrepAI English. This is a sample listening prompt.', { language: 'en-US' })}
-      >
-        <Text className="text-white font-semibold">Probar Listening (TTS)</Text>
-      </Pressable>
+        <Pressable
+          className="mt-4 px-4 py-3 rounded-2xl bg-royal"
+          onPress={() => Speech.speak('Welcome to PrepAI English. This is a sample listening prompt.', { language: 'en-US' })}
+        >
+          <Text className="text-white font-semibold text-center">Probar Listening (TTS)</Text>
+        </Pressable>
 
-      <Pressable
-        className="mt-3 px-5 py-3 rounded-xl bg-black"
-        onPress={() => router.push('/practice/speaking') }
-      >
-        <Text className="text-white font-semibold">Ir a Speaking</Text>
-      </Pressable>
+        <Pressable
+          className="mt-3 px-4 py-3 rounded-2xl bg-black"
+          onPress={() => router.push('/practice/speaking') }
+        >
+          <Text className="text-white font-semibold text-center">Ir a Speaking</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
