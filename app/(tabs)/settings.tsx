@@ -1,17 +1,17 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { useAuth } from "@/providers/AuthProvider";
+import tw from '@/lib/tw';
+import { Button } from '@/components/ui/Button';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   return (
-    <View className="flex-1">
-      <View className="mx-auto w-full max-w-3xl p-4 gap-3">
-        <Text className="text-2xl font-semibold text-primary">Ajustes</Text>
-        <Text className="text-royal">{user?.email}</Text>
+    <View style={tw`flex-1`}>
+      <View style={tw`w-full max-w-3xl mx-auto p-4 gap-3`}>
+        <Text style={tw`text-2xl font-semibold`}>Ajustes</Text>
+        <Text style={tw`text-slate-600`}>{user?.email}</Text>
 
-        <Pressable onPress={signOut} className="mt-4 rounded-2xl bg-accent px-4 py-3">
-          <Text className="text-white font-medium text-center">Cerrar sesión</Text>
-        </Pressable>
+        <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-4`, { backgroundColor: '#ef4444' }]} />
       </View>
     </View>
   );

@@ -1,29 +1,29 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import AuthCard from '@/components/AuthCard';
+import tw from '@/lib/tw';
+import { Button } from '@/components/ui/Button';
 
 export default function LoginScreen() {
   const { signInWithProvider, initializing } = useAuth();
 
   return (
-    <View className="flex-1 items-center justify-center bg-light px-4">
+    <View style={[tw`flex-1 justify-center`, { alignItems: 'center' }]}>
       <AuthCard title="PrepAI English" subtitle="Accede para continuar">
-        <View className="w-full gap-3">
-          <Pressable
-            accessibilityRole="button"
-            disabled={initializing}
+        <View style={tw`w-full gap-3`}>
+          <Button
+            title="Continuar con Google"
             onPress={() => signInWithProvider('google')}
-            className="items-center rounded-xl bg-accent px-5 py-3"
-          >
-            <Text className="text-white font-semibold">Continuar con Google</Text>
-          </Pressable>
+            style={[tw`w-full`, { backgroundColor: '#22c55e' }]}
+            textStyle={tw`font-semibold`}
+          />
 
           <Link
             href="/(auth)/email"
-            className="items-center rounded-xl bg-royal px-5 py-3 text-white text-center"
+            style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#3646ff' }] as any}
           >
-            Acceder con email
+            <Text style={tw`text-white font-semibold text-center`}>Acceder con email</Text>
           </Link>
         </View>
       </AuthCard>

@@ -1,35 +1,29 @@
-import { View, Text, Pressable } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { View, Text } from "react-native";
+import { useRouter } from "expo-router";
 import * as Speech from 'expo-speech';
+import tw from '@/lib/tw';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function Home() {
   const router = useRouter();
   return (
-    <View className="flex-1">
-      <View className="mx-auto w-full max-w-3xl p-4 gap-3">
-        <Text className="text-2xl font-semibold text-primary">PrepAI English</Text>
-        <Text className="text-royal">Mock exams powered by AI</Text>
+    <View style={tw`flex-1`}>
+      <View style={tw`w-full max-w-3xl mx-auto p-4 gap-3`}>
+        <Text style={tw`text-2xl font-semibold`}>PrepAI English</Text>
+        <Text style={tw`text-slate-600`}>Mock exams powered by AI</Text>
 
-        <Link
-          href="/(tabs)/exams"
-          className="mt-4 px-4 py-3 rounded-2xl bg-brand-600 text-white text-center"
-        >
-          Empezar un simulacro
-        </Link>
+        <Button title="Empezar un simulacro" onPress={() => router.push('/(tabs)/exams' as any)} style={tw`mt-4`} />
 
-        <Pressable
-          className="mt-4 px-4 py-3 rounded-2xl bg-royal"
-          onPress={() => Speech.speak('Welcome to PrepAI English. This is a sample listening prompt.', { language: 'en-US' })}
-        >
-          <Text className="text-white font-semibold text-center">Probar Listening (TTS)</Text>
-        </Pressable>
+        <Button
+          title="Probar Listening (TTS)"
+          onPress={() =>
+            Speech.speak('Welcome to PrepAI English. This is a sample listening prompt.', { language: 'en-US' })
+          }
+          style={[tw`mt-4`, { backgroundColor: '#3646ff' }]}
+        />
 
-        <Pressable
-          className="mt-3 px-4 py-3 rounded-2xl bg-black"
-          onPress={() => router.push('/practice/speaking') }
-        >
-          <Text className="text-white font-semibold text-center">Ir a Speaking</Text>
-        </Pressable>
+        <Button title="Ir a Speaking" onPress={() => router.push('/practice/speaking' as any)} style={[tw`mt-3`, { backgroundColor: '#000' }]} />
       </View>
     </View>
   );

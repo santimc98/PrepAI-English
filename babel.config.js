@@ -4,8 +4,8 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       require.resolve('expo-router/babel'),
-      'nativewind/babel',
-      // 'react-native-reanimated/plugin', // solo si existe en deps y se usa
+      // 'nativewind/babel', // desactivado temporalmente
+      // 'react-native-reanimated/plugin', // solo si está en deps y se usa
     ],
   };
 };

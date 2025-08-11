@@ -1,22 +1,24 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { getExam } from "@/lib/exams";
 import { useState } from "react";
+import tw from '@/lib/tw';
+import { Button } from '@/components/ui/Button';
 
 export default function ExamsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <View className="flex-1">
-      <View className="mx-auto w-full max-w-3xl p-4 gap-3">
-        <Text className="text-2xl font-semibold text-primary">Simulacros</Text>
-        <Text className="text-royal">Genera un simulacro rápido de ejemplo</Text>
+    <View style={tw`flex-1`}>
+      <View style={tw`w-full max-w-3xl mx-auto p-4 gap-3`}>
+        <Text style={tw`text-2xl font-semibold`}>Simulacros</Text>
+        <Text style={tw`text-slate-600`}>Genera un simulacro rápido de ejemplo</Text>
 
-        {error ? <Text className="text-red-600">{error}</Text> : null}
+        {error ? <Text style={{ color: '#dc2626' }}>{error}</Text> : null}
 
-        <Pressable
-          className="mt-4 rounded-2xl bg-brand-600 px-4 py-3"
+        <Button
+          title={loading ? 'Generando...' : 'Generar Mock B2'}
           onPress={async () => {
             setLoading(true);
             setError(null);
@@ -29,10 +31,8 @@ export default function ExamsScreen() {
               setLoading(false);
             }
           }}
-          disabled={loading}
-        >
-          <Text className="text-white text-center font-medium">{loading ? 'Generando...' : 'Generar Mock B2'}</Text>
-        </Pressable>
+          style={tw`mt-4`}
+        />
       </View>
     </View>
   );
