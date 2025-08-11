@@ -1,17 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
 /* Alturas completas para que flex-1 ocupe pantalla en web */
 html, body, #root { height: 100%; }
 
-/* Tipografía base legible en web */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-:root { 
-  --app-bg: #f8fafc; /* slate-50 */
-  --font-ui: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-}
+/* CSS mínimo para web; sin Tailwind directives */
+:root { --app-bg: #f8fafc; }
 body {
+  margin: 0;
   background: var(--app-bg);
-  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
 
