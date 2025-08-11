@@ -20,6 +20,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      hitSlop={10}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       onFocus={() => setFocused(true)}
