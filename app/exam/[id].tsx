@@ -3,10 +3,15 @@ import { View, Text, ScrollView, TextInput, Pressable } from 'react-native';
 import type { ExamMock } from '@/types/exam';
 import { useMemo, useState } from 'react';
 import { saveAttempt } from '@/lib/storage';
+import { useAuth } from '@/providers/AuthProvider';
+import { createAttempt, finishAttempt, saveAnswer } from '@/lib/db';
 
 export default function ExamRunner() {
   const params = useLocalSearchParams<{ id: string; data?: string }>();
   const router = useRouter();
+  const { session } = useAuth();
+  const [cloudAttemptId, setCloudAttemptId] = useState<string | null>(null);
+  
   const mock: ExamMock | null = useMemo(() => {
     try {
       return params.data ? (JSON.parse(params.data as string) as ExamMock) : null;
@@ -16,6 +21,22 @@ export default function ExamRunner() {
   }, [params.data]);
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  // Crear attempt en nube si hay sesión y USE_SUPABASE está habilitado
+  useMemo(async () => {
+    if (mock && session?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
+      try {
+        const attempt = await createAttempt({
+          userId: session.user.id,
+          examId: mock.id,
+          examSnapshot: mock,
+        });
+        setCloudAttemptId(attempt.id);
+      } catch (e) {
+        console.warn('[ExamRunner] Failed to create cloud attempt:', e);
+      }
+    }
+  }, [mock, session]);
 
   if (!mock) {
     return (
@@ -65,15 +86,51 @@ export default function ExamRunner() {
               return acc + (q.answer && given && given.trim().toLowerCase() === q.answer.trim().toLowerCase() ? 1 : 0);
             }, 0);
             const score = total ? Math.round((correct / total) * 100) : undefined;
-            await saveAttempt({
-              id: String(Date.now()),
-              examId: mock.id,
-              title: mock.title,
-              level: mock.level,
-              createdAt: Date.now(),
-              finishedAt: Date.now(),
-              score,
-            });
+            
+            // Guardar en nube si hay attemptId, si no en local
+            if (cloudAttemptId && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
+              try {
+                // Guardar respuestas individuales
+                for (const [questionId, answer] of Object.entries(answers)) {
+                  const question = mock.questions.find(q => q.id === questionId);
+                  const isCorrect = question?.answer && answer.trim().toLowerCase() === question.answer.trim().toLowerCase();
+                  await saveAnswer({
+                    attemptId: cloudAttemptId,
+                    questionId,
+                    answer,
+                    correct: isCorrect || null,
+                    points: isCorrect ? 1 : 0,
+                  });
+                }
+                
+                // Finalizar attempt
+                await finishAttempt(cloudAttemptId, score);
+              } catch (e) {
+                console.warn('[ExamRunner] Failed to save to cloud, falling back to local:', e);
+                // Fallback a local
+                await saveAttempt({
+                  id: String(Date.now()),
+                  examId: mock.id,
+                  title: mock.title,
+                  level: mock.level,
+                  createdAt: Date.now(),
+                  finishedAt: Date.now(),
+                  score,
+                });
+              }
+            } else {
+              // Solo local
+              await saveAttempt({
+                id: String(Date.now()),
+                examId: mock.id,
+                title: mock.title,
+                level: mock.level,
+                createdAt: Date.now(),
+                finishedAt: Date.now(),
+                score,
+              });
+            }
+            
             router.replace('/(tabs)/progress');
           }}
         >

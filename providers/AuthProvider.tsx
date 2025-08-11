@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { upsertProfile } from '@/lib/db';
 import type { Session, User } from '@supabase/supabase-js';
 
 type OAuthProvider = 'google';
@@ -33,8 +34,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
+      
+      // Crear/actualizar perfil si hay sesión y USE_SUPABASE está habilitado
+      if (newSession?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
+        try {
+          await upsertProfile({
+            id: newSession.user.id,
+            email: newSession.user.email,
+            display_name: newSession.user.user_metadata?.full_name || newSession.user.user_metadata?.name,
+          });
+        } catch (e) {
+          console.warn('[AuthProvider] Failed to upsert profile:', e);
+        }
+      }
     });
     return () => {
       isMounted = false;

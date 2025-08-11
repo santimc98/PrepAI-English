@@ -32,4 +32,31 @@ export function createSimpleMock(level: ExamMock['level']): ExamMock {
   };
 }
 
+export async function generateExamViaEdge(params: { level: string; sections: string[] }) {
+  const base = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  
+  if (!base || !key) {
+    throw new Error('EXPO_PUBLIC_SUPABASE_URL/ANON_KEY no configuradas');
+  }
+  
+  const resp = await fetch(`${base}/functions/v1/generate-exam`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify(params),
+  });
+  
+  if (!resp.ok) {
+    throw new Error(`Edge generation failed: ${resp.status} ${resp.statusText}`);
+  }
+  
+  return await resp.json();
+}
+
+// TODO: Integrar esta función en el flujo principal cuando se despliegue la Edge Function
+// Por ahora, solo está disponible para pruebas manuales
+
 
