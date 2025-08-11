@@ -1,4 +1,5 @@
 import type { ExamMock, Question } from '@/types/exam';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function createSimpleMock(level: ExamMock['level']): ExamMock {
   const uid = () => Math.random().toString(36).slice(2, 10);
@@ -57,7 +58,9 @@ export async function generateExamViaEdge(params: { level: string; sections: str
 }
 
 export async function getExam(params: { level: string; sections: string[] }): Promise<ExamMock> {
-  const useCloud = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
+  const useCloudEnv = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
+  const useCloudToggle = (await AsyncStorage.getItem('ui:useCloud')) === 'true';
+  const useCloud = useCloudEnv && useCloudToggle;
   if (useCloud) {
     try {
       const res: any = await generateExamViaEdge(params);

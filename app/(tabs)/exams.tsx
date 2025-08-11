@@ -36,6 +36,7 @@ export default function ExamsScreen() {
           setError(null);
           try {
             const exam = await getExam({ level: 'B2', sections: ['Reading', 'Use of English'] });
+            try { toast.success('Examen generado'); } catch {}
             router.push({ pathname: "/exam/[id]" as any, params: { id: exam.id, data: JSON.stringify(exam) } } as any);
           } catch (e: any) {
             setError(e?.message || 'No se pudo generar el examen');
