@@ -49,3 +49,4 @@ ios/build/
 
 # Tests
 coverage/
+\n# Local lint logs\nlint.full.log\nlint_sel.log\nlint.out\n*.log

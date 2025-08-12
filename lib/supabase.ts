@@ -1,51 +1,54 @@
 import 'react-native-url-polyfill/auto';
 import 'expo-standard-web-crypto';
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env';
+import { Platform } from 'react-native';
 
-// Evitar romper SSR/Web al importar AsyncStorage en Node.
-const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
-const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
-type StorageAdapter = {
-  getItem: (key: string) => Promise<string | null>;
-  setItem: (key: string, value: string) => Promise<void>;
-  removeItem: (key: string) => Promise<void>;
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // No romper la build en CI; solo warn
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[Supabase] EXPO_PUBLIC_SUPABASE_URL/ANON_KEY no configuradas. El login no funcionará hasta que definas las variables.'
+  );
+}
+
+const isWeb = Platform.OS === 'web';
+
+type AuthStorage = {
+  getItem: (key: string) => Promise<string | null> | string | null;
+  setItem: (key: string, value: string) => Promise<void> | void;
+  removeItem: (key: string) => Promise<void> | void;
 };
 
-function createLocalStorageAdapter(): StorageAdapter | undefined {
-  if (!isBrowser) return undefined;
-  return {
-    getItem: async (key) => window.localStorage.getItem(key),
-    setItem: async (key, value) => void window.localStorage.setItem(key, value),
-    removeItem: async (key) => void window.localStorage.removeItem(key),
+const authOptions: {
+  flowType: 'pkce';
+  autoRefreshToken: boolean;
+  persistSession: boolean;
+  storage?: AuthStorage;
+} = {
+  flowType: 'pkce',
+  autoRefreshToken: true,
+  persistSession: true,
+};
+
+if (!isWeb) {
+  // Cargar AsyncStorage solo en entornos RN para evitar 'window is not defined' en web
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default as AuthStorage;
+  authOptions.storage = {
+    getItem: (key: string) => AsyncStorage.getItem(key),
+    setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
+    removeItem: (key: string) => AsyncStorage.removeItem(key),
   };
 }
 
-function createAsyncStorageAdapter(): StorageAdapter | undefined {
-  if (!isReactNative) return undefined;
-  try {
-    // Carga diferida para evitar acceso a window en SSR.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default as StorageAdapter;
-    return AsyncStorage;
-  } catch {
-    return undefined;
-  }
-}
-
-const storage = createAsyncStorageAdapter() ?? createLocalStorageAdapter();
-
-const options: any = {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: authOptions,
+  global: {
+    headers: { 'X-Client-Info': 'prepaienglish' },
   },
-};
-if (storage) options.auth.storage = storage;
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, options);
+});
 
 

@@ -1,33 +1,44 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import AuthCard from '@/components/AuthCard';
+import tw from '@/lib/tw';
+import { Button } from '@/components/ui/Button';
+import Container from '@/components/layout/Container';
+import { useToast } from '@/providers/Toast';
 
 export default function LoginScreen() {
   const { signInWithProvider, initializing } = useAuth();
+  const toast = useToast();
 
   return (
-    <View className="flex-1 items-center justify-center bg-light px-4">
-      <AuthCard title="PrepAI English" subtitle="Accede para continuar">
-        <View className="w-full gap-3">
-          <Pressable
-            accessibilityRole="button"
-            disabled={initializing}
-            onPress={() => signInWithProvider('google')}
-            className="items-center rounded-xl bg-accent px-5 py-3"
-          >
-            <Text className="text-white font-semibold">Continuar con Google</Text>
-          </Pressable>
+    <Container>
+      <View style={[tw`w-full self-center`, { maxWidth: 480 }] }>
+        <AuthCard title="PrepAI English" subtitle="Accede para continuar">
+          <View style={tw`w-full gap-3`}>
+            <Button
+              title="Continuar con Google"
+              onPress={async () => {
+                try {
+                  await signInWithProvider('google');
+                } catch (e) {
+                  try { toast.error('No se pudo iniciar sesión'); } catch {}
+                }
+              }}
+              style={[tw`w-full`, { backgroundColor: '#22c55e' }]}
+              textStyle={tw`font-semibold`}
+            />
 
-          <Link
-            href="/(auth)/email"
-            className="items-center rounded-xl bg-royal px-5 py-3 text-white text-center"
-          >
-            Acceder con email
-          </Link>
-        </View>
-      </AuthCard>
-    </View>
+            <Link
+              href="/(auth)/email"
+              style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#3646ff' }] as any}
+            >
+              <Text style={tw`text-white font-semibold text-center`}>Acceder con email</Text>
+            </Link>
+          </View>
+        </AuthCard>
+      </View>
+    </Container>
   );
 }
 

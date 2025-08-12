@@ -1,20 +1,20 @@
 import { Tabs } from "expo-router";
-import { Home, BookOpen, BarChart2, Settings } from "lucide-react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { theme } from '@/lib/theme';
 
 export default function TabLayout() {
   return (
     <Tabs
-      sceneContainerStyle={{ backgroundColor: "#F2F6FF" }}
       screenOptions={{
-        tabBarActiveTintColor: "#0A2A66",
+        tabBarActiveTintColor: theme.colors.brand[600],
         tabBarInactiveTintColor: "#9CA3AF",
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#E5E7EB",
-          height: 60,
+          backgroundColor: theme.colors.card,
+          borderTopColor: theme.colors.border,
+          height: 56,
           paddingBottom: 6,
         },
-        tabBarLabelStyle: { fontWeight: "600" },
+        tabBarLabelStyle: { fontSize: 12 },
         headerShown: false,
       }}
     >
@@ -22,28 +22,28 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="exams"
         options={{
           title: "Exams",
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
           title: "Progress",
-          tabBarIcon: ({ color, size }) => <BarChart2 color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
         }}
       />
     </Tabs>

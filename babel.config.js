@@ -1,13 +1,11 @@
 module.exports = function (api) {
   api.cache(true);
   return {
-    // 1. PRESETS  ──────────────────────
-    presets: [["babel-preset-expo", { jsxImportSource: "nativewind" }], "nativewind/babel"],
-
-    // 2. PLUGINS ───────────────────────
+    presets: ['babel-preset-expo'],
     plugins: [
-      ["module:react-native-dotenv", { moduleName: "@env", safe: false }],
-      "react-native-reanimated/plugin",
+      require.resolve('expo-router/babel'),
+      // 'nativewind/babel', // desactivado temporalmente
+      // 'react-native-reanimated/plugin', // solo si está en deps y se usa
     ],
   };
 };

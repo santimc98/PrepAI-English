@@ -39,7 +39,11 @@ export type Attempt = {
   title: string;
   level: ExamMock['level'];
   createdAt: number;
+  finishedAt?: number;
   score?: number;
+  examSnapshot?: any;
+  answers?: Array<{ questionId: string; answer: any; correct?: boolean | null; points?: number | null }>; 
+  source?: 'local' | 'cloud';
 };
 
 const KEY = 'prepai_attempts_v1';
@@ -58,6 +62,11 @@ export async function getAttempts(): Promise<Attempt[]> {
   } catch {
     return [];
   }
+}
+
+export async function getAttemptById(id: string): Promise<Attempt | undefined> {
+  const all = await getAttempts();
+  return all.find(a => a.id === id);
 }
 
 

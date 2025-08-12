@@ -1,0 +1,10 @@
+
+> prepai-english@1.0.0 lint
+> eslint . --ext .ts,.tsx --no-error-on-unmatched-pattern
+
+
+C:\Users\santi\Projects\PrepAI-English\supabase\functions\generate-exam\index.ts
+  1:1  error  Resolve error: typescript with invalid interface loaded as resolver  import/namespace
+
+✖ 1 problem (1 error, 0 warnings)
+

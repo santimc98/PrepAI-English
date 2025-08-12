@@ -1,16 +1,63 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Switch } from "react-native";
 import { useAuth } from "@/providers/AuthProvider";
+import tw from '@/lib/tw';
+import { Button } from '@/components/ui/Button';
+import Container from '@/components/layout/Container';
+import Heading from '@/components/ui/Heading';
+import TextMuted from '@/components/ui/TextMuted';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
-  return (
-    <View className="flex-1 items-center justify-center bg-light px-6">
-      <Text className="text-primary text-3xl font-extrabold">Ajustes</Text>
-      <Text className="mt-2 text-royal">{user?.email}</Text>
+  const [dark, setDark] = useState(false);
+  const [useCloud, setUseCloud] = useState(false);
 
-      <Pressable onPress={signOut} className="mt-6 rounded-xl bg-accent px-5 py-3">
-        <Text className="text-white font-semibold">Cerrar sesión</Text>
-      </Pressable>
-    </View>
+  useEffect(() => {
+    (async () => {
+      try {
+        const pref = await AsyncStorage.getItem('ui:theme');
+        setDark(pref === 'dark');
+        const cloud = await AsyncStorage.getItem('dev:cloudExam');
+        setUseCloud(cloud == null ? true : cloud === 'true');
+      } catch {}
+    })();
+  }, []);
+
+  const toggleTheme = async () => {
+    const next = !dark;
+    setDark(next);
+    try {
+      await AsyncStorage.setItem('ui:theme', next ? 'dark' : 'light');
+    } catch {}
+  };
+
+  const toggleCloud = async () => {
+    const next = !useCloud;
+    setUseCloud(next);
+    try {
+      await AsyncStorage.setItem('dev:cloudExam', next ? 'true' : 'false');
+    } catch {}
+  };
+
+  return (
+    <Container>
+      <Heading>Ajustes</Heading>
+      <TextMuted>{user?.email}</TextMuted>
+
+      <View style={tw`mt-4 flex-row items-center justify-between`}>
+        <Text style={tw`font-medium`}>Modo oscuro (beta)</Text>
+        <Switch value={dark} onValueChange={toggleTheme} />
+      </View>
+
+      {process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' ? (
+        <View style={tw`mt-4 flex-row items-center justify-between`}>
+          <Text style={tw`font-medium`}>Usar nube para generar exámenes (dev)\n<TextMuted>(requiere .env EXPO_PUBLIC_USE_SUPABASE=true)</TextMuted></Text>
+          <Switch value={useCloud} onValueChange={toggleCloud} />
+        </View>
+      ) : null}
+
+      <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-6`, { backgroundColor: '#ef4444' }]} />
+    </Container>
   );
 }
