@@ -29,18 +29,34 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee lint.log
 
       - name: Typecheck
-        run: npm run typecheck
+        run: |
+          set -o pipefail
+          npm run typecheck 2>&1 | tee typecheck.log
 
       - name: Build web (Expo export)
-        run: npm run build:web
+        run: |
+          set -o pipefail
+          npm run build:web 2>&1 | tee build_web.log
 
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: dist
+
+      - name: Upload CI logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs
+          path: |
+            lint.log
+            typecheck.log
+            build_web.log
 
 
