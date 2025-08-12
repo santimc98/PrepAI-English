@@ -59,4 +59,11 @@ jobs:
             typecheck.log
             build_web.log
 
+      - name: Print logs on failure
+        if: failure()
+        run: |
+          echo '--- lint.log (tail) ---' && (tail -n 200 lint.log || true)
+          echo '--- typecheck.log (tail) ---' && (tail -n 200 typecheck.log || true)
+          echo '--- build_web.log (tail) ---' && (tail -n 200 build_web.log || true)
+
 
