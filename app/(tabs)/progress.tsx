@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { getAttempts, type Attempt } from '@/lib/storage';
 import { useAuth } from '@/providers/AuthProvider';
@@ -11,6 +11,10 @@ import { Card } from '@/components/ui/Card';
 import { useRouter } from 'expo-router';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/providers/Toast';
+import Sparkline from '@/components/ui/Sparkline';
+import StatPill from '@/components/ui/StatPill';
+import BadgeCard from '@/components/ui/BadgeCard';
+import { computePointsFromAttempts, levelFromPoints } from '@/lib/gamify';
 
 export default function ProgressScreen() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -60,6 +64,19 @@ export default function ProgressScreen() {
     setRefreshing(false);
   };
 
+  const summary = useMemo(() => {
+    const scores = attempts.map(a => (typeof a.score === 'number' ? a.score : null)).filter((x): x is number => x != null);
+    const lastScores = scores.slice(-12);
+    const points = computePointsFromAttempts(attempts);
+    const level = levelFromPoints(points);
+    const badges: { icon: any; title: string; earned: boolean }[] = [
+      { icon: 'star', title: 'Primer simulacro', earned: attempts.length >= 1 },
+      { icon: 'trophy', title: '5 simulacros', earned: attempts.length >= 5 },
+      { icon: 'ribbon', title: 'Media ≥ 60%', earned: scores.length ? (scores.reduce((s, v) => s + v, 0) / scores.length) >= 60 : false },
+    ];
+    return { lastScores, points, level, badges };
+  }, [attempts]);
+
   return (
     <ScrollView
       style={tw`flex-1`}
@@ -79,17 +96,39 @@ export default function ProgressScreen() {
             <TextMuted>Aún no hay intentos. Empieza un mock desde Exams.</TextMuted>
           </Card>
         ) : (
-          attempts.map((a) => (
-            <Pressable key={a.id} onPress={() => router.push({ pathname: '/exam/[id]/review' as any, params: { id: a.id } } as any)}>
-              <Card style={tw`mt-4`}>
-                <Text style={tw`font-semibold`}>{a.title} • {a.level}</Text>
-                <Text style={tw`mt-1`}>
-                  Puntuación: <Text style={tw`font-semibold text-slate-700`}>{a.score ?? '-'}%</Text>
-                </Text>
-                <Text style={tw`text-xs mt-1 text-slate-600`}>{new Date(a.createdAt).toLocaleString()}</Text>
-              </Card>
-            </Pressable>
-          ))
+          <>
+            <Card style={tw`mt-3 p-4`}>
+              <Text style={tw`font-semibold`}>Evolución</Text>
+              <View style={tw`mt-3`}>
+                <Sparkline data={summary.lastScores} />
+              </View>
+              <View style={tw`mt-3 flex-row flex-wrap gap-2`}>
+                <StatPill label="Puntos" value={String(summary.points)} icon="trophy" />
+                <StatPill label="Nivel" value={summary.level} icon="ribbon" />
+              </View>
+            </Card>
+
+            <View style={tw`mt-3`}>
+              <Text style={tw`font-semibold`}>Insignias</Text>
+              <View style={tw`mt-2 gap-2`}>
+                {summary.badges.map((b, i) => (
+                  <BadgeCard key={i} icon={b.icon as any} title={`${b.title}${b.earned ? ' ✅' : ''}`} />
+                ))}
+              </View>
+            </View>
+
+            {attempts.map((a) => (
+              <Pressable key={a.id} onPress={() => router.push({ pathname: '/exam/[id]/review' as any, params: { id: a.id } } as any)}>
+                <Card style={tw`mt-4`}>
+                  <Text style={tw`font-semibold`}>{a.title} • {a.level}</Text>
+                  <Text style={tw`mt-1`}>
+                    Puntuación: <Text style={tw`font-semibold text-slate-700`}>{a.score ?? '-'}%</Text>
+                  </Text>
+                  <Text style={tw`text-xs mt-1 text-slate-600`}>{new Date(a.createdAt).toLocaleString()}</Text>
+                </Card>
+              </Pressable>
+            ))}
+          </>
         )}
       </Container>
     </ScrollView>
