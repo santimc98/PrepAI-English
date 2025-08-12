@@ -1,5 +1,5 @@
 // app/_layout.tsx     ← raíz de la carpeta app
-import { Slot, useRouter, useSegments, Stack } from "expo-router";
+import { useRouter, useSegments, Stack } from "expo-router";
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
 import tw from "@/lib/tw";
@@ -28,7 +28,8 @@ function RootNavigationGate() {
     }
   }, [segments, router, session, initializing]);
 
-  return <Slot />;
+  // Effect-only gate to redirect based on auth; do not render another navigator here.
+  return null;
 }
 
 export default function RootLayout() {
