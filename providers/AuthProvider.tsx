@@ -4,7 +4,8 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { upsertProfile } from '@/lib/db';
+import { upsertProfile, getProfileDefaultLevel, updateDefaultLevel } from '@/lib/db';
+import { getDefaultLevel, setDefaultLevel } from '@/lib/prefs';
 import type { Session, User } from '@supabase/supabase-js';
 
 type OAuthProvider = 'google';
@@ -47,6 +48,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         } catch (e) {
           console.warn('[AuthProvider] Failed to upsert profile:', e);
+        }
+
+        // Sync default_level between profile and local prefs
+        try {
+          const cloudLevel = await getProfileDefaultLevel();
+          if (cloudLevel) {
+            await setDefaultLevel(cloudLevel);
+          } else {
+            const localLevel = await getDefaultLevel();
+            if (localLevel) {
+              await updateDefaultLevel(localLevel);
+            }
+          }
+        } catch (e) {
+          console.warn('[AuthProvider] default_level sync failed:', e);
         }
       }
     });

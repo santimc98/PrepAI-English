@@ -1,7 +1,7 @@
 import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { getExam } from "@/lib/exams";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import tw from '@/lib/tw';
 import { Button } from '@/components/ui/Button';
 import Container from '@/components/layout/Container';
@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/providers/Toast';
 import ActionCard from '@/components/ui/ActionCard';
 import Sheet from '@/components/ui/Sheet';
+import { getDefaultLevel } from '@/lib/prefs';
+import type { ExamLevel } from '@/types/level';
 
 export default function ExamsScreen() {
   const router = useRouter();
@@ -19,12 +21,17 @@ export default function ExamsScreen() {
   const toast = useToast();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pending, setPending] = useState<null | { title: string; sections: string[] }>(null);
+  const [level, setLevel] = useState<ExamLevel>('B2');
+
+  useEffect(() => {
+    getDefaultLevel().then((v) => setLevel((v ?? 'B2') as ExamLevel)).catch(() => {});
+  }, []);
 
   const options = useMemo(() => ([
-    { title: 'Mock B2 completo', icon: 'document-text' as const, sections: ['Reading', 'Use of English', 'Listening'] },
+    { title: `Mock ${level} completo`, icon: 'document-text' as const, sections: ['Reading', 'Use of English', 'Listening'] },
     { title: 'Solo Listening', icon: 'volume-high' as const, sections: ['Listening'] },
     { title: 'Solo Reading', icon: 'book' as const, sections: ['Reading', 'Use of English'] },
-  ]), []);
+  ]), [level]);
 
   return (
     <Container>
@@ -64,7 +71,7 @@ export default function ExamsScreen() {
               if (!pending) return;
               setLoading(true); setError(null);
               try {
-                const exam = await getExam({ level: 'B2', sections: pending.sections });
+                const exam = await getExam({ sections: pending.sections });
                 try { toast.success('Examen generado'); } catch {}
                 setSheetOpen(false);
                 router.push({ pathname: "/exam/[id]" as any, params: { id: exam.id, data: JSON.stringify(exam) } } as any);
@@ -81,12 +88,12 @@ export default function ExamsScreen() {
       </Sheet>
 
       <Button
-        title={loading ? 'Generando...' : 'Generar Mock B2'}
+        title={loading ? 'Generando...' : `Generar Mock ${level}`}
         onPress={async () => {
           setLoading(true);
           setError(null);
           try {
-            const exam = await getExam({ level: 'B2', sections: ['Reading', 'Use of English', 'Listening'] });
+            const exam = await getExam({ sections: ['Reading', 'Use of English', 'Listening'] });
             try { toast.success('Examen generado'); } catch {}
             router.push({ pathname: "/exam/[id]" as any, params: { id: exam.id, data: JSON.stringify(exam) } } as any);
           } catch (e: any) {

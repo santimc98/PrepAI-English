@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import type { ExamLevel } from '@/types/level';
 
 export async function upsertProfile(u: { id: string; email?: string | null; display_name?: string | null }) {
   try {
@@ -79,6 +80,37 @@ export async function getAttemptWithAnswers(attemptId: string) {
     .order('created_at', { ascending: true });
   if (err2) throw err2;
   return { attempt, answers };
+}
+
+export async function updateDefaultLevel(level: ExamLevel) {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) return;
+    const { error } = await supabase.from('profiles').upsert({ id: uid, default_level: level });
+    if (error) throw error;
+  } catch (e) {
+    console.warn('[db] updateDefaultLevel failed:', e);
+  }
+}
+
+export async function getProfileDefaultLevel(): Promise<ExamLevel | null> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) return null;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('default_level')
+      .eq('id', uid)
+      .single();
+    if (error) throw error;
+    const v = (data as any)?.default_level;
+    return v === 'B1' || v === 'B2' || v === 'C1' || v === 'C2' ? (v as ExamLevel) : null;
+  } catch (e) {
+    console.warn('[db] getProfileDefaultLevel failed:', e);
+    return null;
+  }
 }
 
 

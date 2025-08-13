@@ -1,5 +1,5 @@
 // app/_layout.tsx     ← raíz de la carpeta app
-import { useRouter, useSegments, Stack } from "expo-router";
+import { useRouter, useSegments, Stack, Redirect } from "expo-router";
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
 import tw from "@/lib/tw";
@@ -12,6 +12,8 @@ import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { UiThemeContext } from '@/providers/UiTheme';
 import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { ToastProvider } from '@/providers/Toast';
+import { getDefaultLevel } from '@/lib/prefs';
+import type { ExamLevel } from '@/types/level';
 
 function RootNavigationGate() {
   const segments = useSegments();
@@ -29,6 +31,21 @@ function RootNavigationGate() {
   }, [segments, router, session, initializing]);
 
   // Effect-only gate to redirect based on auth; do not render another navigator here.
+  return null;
+}
+
+function LevelGate() {
+  const segments = useSegments();
+  const [level, setLevel] = useState<ExamLevel | null>(null);
+  const [checked, setChecked] = useState(false);
+  useEffect(() => {
+    getDefaultLevel().then((v) => { setLevel(v); setChecked(true); }).catch(() => { setChecked(true); });
+  }, []);
+  if (!checked) return null;
+  const inOnboarding = segments.includes('onboarding');
+  const inAuthGroup = segments[0] === '(auth)';
+  if (inAuthGroup) return null;
+  if (!level && !inOnboarding) return <Redirect href="/onboarding/level" />;
   return null;
 }
 
@@ -66,6 +83,7 @@ export default function RootLayout() {
               }}
             />
             <RootNavigationGate />
+            <LevelGate />
           </SafeAreaView>
         </ToastProvider>
       </UiThemeContext.Provider>

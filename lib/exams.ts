@@ -1,4 +1,5 @@
 import type { ExamMock, Question } from '@/types/exam';
+import { getDefaultLevel } from '@/lib/prefs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function createSimpleMock(level: ExamMock['level']): ExamMock {
@@ -82,11 +83,12 @@ export async function generateExamViaEdge(params: { level: string; sections: str
   }
 }
 
-export async function getExam(params: { level: string; sections: string[] }): Promise<ExamMock> {
+export async function getExam(params: { level?: string; sections: string[] }): Promise<ExamMock> {
+  const level = params.level || (await getDefaultLevel()) || 'B2';
   const useCloud = (await getCloudToggle()) && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
   if (useCloud) {
     try {
-      const res: any = await withTimeout(() => generateExamViaEdge(params), 10_000);
+      const res: any = await withTimeout(() => generateExamViaEdge({ level, sections: params.sections }), 10_000);
       // Adaptar respuesta de la edge a nuestro ExamMock
       const questions: Question[] = (res.sections || []).flatMap((s: any) =>
         (s.items || []).map((it: any) => ({
@@ -103,8 +105,8 @@ export async function getExam(params: { level: string; sections: string[] }): Pr
       );
       return {
         id: Math.random().toString(36).slice(2, 10),
-        title: res.title ?? `Mock ${params.level}`,
-        level: (res.level as ExamMock['level']) ?? (params.level as any),
+        title: res.title ?? `Mock ${level}`,
+        level: (res.level as ExamMock['level']) ?? (level as any),
         createdAt: Date.now(),
         questions,
       };
@@ -112,7 +114,7 @@ export async function getExam(params: { level: string; sections: string[] }): Pr
       // fallthrough to local
     }
   }
-  return generateMockExam(params.level as any);
+  return generateMockExam(level as any);
 }
 
 // TODO: Integrar esta función en más pantallas cuando se despliegue la Edge Function

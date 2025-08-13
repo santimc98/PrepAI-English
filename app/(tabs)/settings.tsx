@@ -8,11 +8,16 @@ import TextMuted from '@/components/ui/TextMuted';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { getDefaultLevel } from '@/lib/prefs';
+import type { ExamLevel } from '@/types/level';
+import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [dark, setDark] = useState(false);
   const [useCloud, setUseCloud] = useState(false);
+  const [defaultLevel, setDefaultLevelState] = useState<ExamLevel | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -21,6 +26,8 @@ export default function SettingsScreen() {
         setDark(pref === 'dark');
         const cloud = await AsyncStorage.getItem('dev:cloudExam');
         setUseCloud(cloud == null ? true : cloud === 'true');
+        const lvl = await getDefaultLevel();
+        setDefaultLevelState(lvl);
       } catch {}
     })();
   }, []);
@@ -69,6 +76,15 @@ export default function SettingsScreen() {
           </View>
         </Card>
       ) : null}
+
+      <Card style={tw`mt-4 p-4`}>
+        <Text style={tw`font-semibold`}>Preferencias</Text>
+        <View style={tw`mt-3`}>
+          <Text style={tw`font-medium`}>Nivel de examen por defecto: <Text style={tw`font-semibold`}>{defaultLevel ?? 'B2'}</Text></Text>
+          <TextMuted>Puedes cambiarlo cuando quieras.</TextMuted>
+          <Button title="Cambiar nivel" onPress={() => router.push('/onboarding/level?edit=true' as any)} style={tw`mt-3`} />
+        </View>
+      </Card>
 
       <Card style={tw`mt-4 p-4`}>
         <Text style={tw`font-semibold`}>Cuenta</Text>

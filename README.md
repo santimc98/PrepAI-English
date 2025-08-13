@@ -35,6 +35,10 @@ El build web usa placeholders de variables públicas. Para producción, define S
 1. Abrir Supabase → SQL Editor
 2. Pegar contenido de `supabase/schema.sql` → Run
 3. Verificar que se crearon las tablas: `profiles`, `exams`, `attempts`, `attempt_answers`
+4. Nuevo: `profiles.default_level` (B1/B2/C1/C2). Si tu proyecto ya existía, vuelve a ejecutar `supabase/schema.sql` o añade manualmente la columna:
+   ```sql
+   alter table public.profiles add column if not exists default_level text check (default_level in ('B1','B2','C1','C2'));
+   ```
 
 ### 2. Configurar autenticación
 1. Authentication → URL Configuration
@@ -68,3 +72,10 @@ El build web usa placeholders de variables públicas. Para producción, define S
 2. Login con Google
 3. Ejecutar mock → verificar en Progress (nube)
 4. Sin sesión/env → Progress usa intentos locales
+
+## Onboarding de nivel
+
+- Primera vez sin `pref:defaultExamLevel` → se abre `onboarding/level` para elegir B1/B2/C1/C2.
+- Se guarda en AsyncStorage y, si hay sesión Supabase, también en `profiles.default_level`.
+- En Ajustes puedes cambiarlo (abre onboarding en modo edición con confirmación).
+- La generación de exámenes usa este nivel por defecto (fallback: B2).
