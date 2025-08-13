@@ -1,5 +1,5 @@
 // app/_layout.tsx     ← raíz de la carpeta app
-import { useRouter, useSegments, Stack, Redirect } from "expo-router";
+import { useRouter, useSegments, Stack, Redirect, usePathname } from "expo-router";
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
 import tw from "@/lib/tw";
@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { UiThemeContext } from '@/providers/UiTheme';
 import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { ToastProvider } from '@/providers/Toast';
-import { getDefaultLevel } from '@/lib/prefs';
+import { PrefsProvider, usePrefs } from '@/providers/PrefsProvider';
 import type { ExamLevel } from '@/types/level';
 
 function RootNavigationGate() {
@@ -35,17 +35,13 @@ function RootNavigationGate() {
 }
 
 function LevelGate() {
-  const segments = useSegments();
-  const [level, setLevel] = useState<ExamLevel | null>(null);
-  const [checked, setChecked] = useState(false);
-  useEffect(() => {
-    getDefaultLevel().then((v) => { setLevel(v); setChecked(true); }).catch(() => { setChecked(true); });
-  }, []);
-  if (!checked) return null;
-  const inOnboarding = segments.includes('onboarding');
-  const inAuthGroup = segments[0] === '(auth)';
+  const pathname = usePathname();
+  const { level, ready } = usePrefs();
+  if (!ready) return null;
+  const inAuthGroup = pathname?.startsWith('/(auth)');
+  const isOnboarding = pathname?.startsWith('/onboarding');
   if (inAuthGroup) return null;
-  if (!level && !inOnboarding) return <Redirect href="/onboarding/level" />;
+  if (!level && !isOnboarding) return <Redirect href="/onboarding/level" />;
   return null;
 }
 
@@ -76,14 +72,16 @@ export default function RootLayout() {
         <ToastProvider>
           <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "transparent" },
-              }}
-            />
-            <RootNavigationGate />
-            <LevelGate />
+            <PrefsProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: "transparent" },
+                }}
+              />
+              <RootNavigationGate />
+              <LevelGate />
+            </PrefsProvider>
           </SafeAreaView>
         </ToastProvider>
       </UiThemeContext.Provider>

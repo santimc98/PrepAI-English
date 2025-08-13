@@ -7,9 +7,8 @@ import Heading from '@/components/ui/Heading';
 import TextMuted from '@/components/ui/TextMuted';
 import ActionCard from '@/components/ui/ActionCard';
 import { LEVELS, type ExamLevel } from '@/types/level';
-import { setDefaultLevel } from '@/lib/prefs';
-import { updateDefaultLevel } from '@/lib/db';
 import { useAuth } from '@/providers/AuthProvider';
+import { usePrefs } from '@/providers/PrefsProvider';
 import { useToast } from '@/providers/Toast';
 
 const DESCRIPTIONS: Record<ExamLevel, { title: string; desc: string; icon: any }> = {
@@ -24,15 +23,13 @@ export default function OnboardingLevel() {
   const params = useLocalSearchParams();
   const { session } = useAuth();
   const toast = useToast();
+  const { setLevel } = usePrefs();
   const cards = useMemo(() => LEVELS.map(l => DESCRIPTIONS[l]), []);
 
   const selectLevel = async (level: ExamLevel) => {
     const apply = async () => {
       try {
-        await setDefaultLevel(level);
-        if (session && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
-          try { await updateDefaultLevel(level); } catch {}
-        }
+        await setLevel(level);
         try { toast.success('Nivel guardado'); } catch {}
       } catch {}
       router.replace('/(tabs)');
