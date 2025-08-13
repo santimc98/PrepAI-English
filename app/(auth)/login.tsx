@@ -1,5 +1,5 @@
-import { View, Text } from 'react-native';
-import { Link } from 'expo-router';
+import { View, Text, Pressable, Platform } from 'react-native';
+import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import AuthCard from '@/components/AuthCard';
 import tw from '@/lib/tw';
@@ -29,12 +29,16 @@ export default function LoginScreen() {
               textStyle={tw`font-semibold`}
             />
 
-            <Link
-              href="/(auth)/email"
-              style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#1d4ed8' }] as any}
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => {
+                if (Platform.OS === 'web') console.log('[nav] go /email clicked');
+                router.push('/(auth)/email');
+              }}
+              style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#1d4ed8' }]}
             >
               <Text style={tw`text-white font-semibold text-center`}>Acceder con email</Text>
-            </Link>
+            </Pressable>
           </View>
         </AuthCard>
       </View>
