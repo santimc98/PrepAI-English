@@ -53,6 +53,8 @@ El build web usa placeholders de variables públicas. Para producción, define S
 2. Google: configurar Client ID y Client Secret
 3. Apple: configurar Services ID y Return URL
 
+Nota: Para login por contraseña, habilita el provider Email en Supabase y (opcional) desactiva Magic Link si no lo usas.
+
 ### 4. Desplegar Edge Function
 1. Edge Functions → Create `generate-exam`
 2. Pegar contenido de `supabase/functions/generate-exam/index.ts`

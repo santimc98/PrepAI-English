@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
             <Link
               href="/(auth)/email"
-              style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#3646ff' }] as any}
+              style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#1d4ed8' }] as any}
             >
               <Text style={tw`text-white font-semibold text-center`}>Acceder con email</Text>
             </Link>
