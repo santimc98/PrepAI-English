@@ -13,7 +13,7 @@ import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { UiThemeContext } from '@/providers/UiTheme';
 import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { ToastProvider } from '@/providers/Toast';
-import { PrefsProvider, usePrefs } from '@/providers/PrefsProvider';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { queryClient } from '@/lib/queryClient';
 
 
@@ -38,11 +38,16 @@ function RootNavigationGate() {
 
 function LevelGate() {
   const pathname = usePathname();
-  const { level } = usePrefs();
+  const { certificationLevel, isReady } = useUserPreferences();
   const inAuthGroup = pathname?.startsWith('/(auth)');
   const isOnboarding = pathname?.startsWith('/onboarding');
-  if (inAuthGroup) return null;
-  if (!level && !isOnboarding) return <Redirect href="/onboarding/level" />;
+  
+  // Don't redirect during hydration or in auth flows
+  if (inAuthGroup || !isReady) return null;
+  
+  // Redirect to level selection if no level is set and not already in onboarding
+  if (!certificationLevel && !isOnboarding) return <Redirect href="/onboarding/level" />;
+  
   return null;
 }
 
@@ -74,16 +79,14 @@ export default function RootLayout() {
           <ToastProvider>
             <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
               <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-              <PrefsProvider>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: "transparent" },
-                  }}
-                />
-                <RootNavigationGate />
-                <LevelGate />
-              </PrefsProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: "transparent" },
+                }}
+              />
+              <RootNavigationGate />
+              <LevelGate />
             </SafeAreaView>
           </ToastProvider>
         </UiThemeContext.Provider>
