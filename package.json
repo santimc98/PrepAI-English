@@ -11,6 +11,7 @@
     "dev": "expo start --tunnel",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc -p . --noEmit",
+    "build": "expo export --platform web --dump-sourcemap --non-interactive",
     "build:web": "expo export --platform web --dump-sourcemap --non-interactive",
     "clean:metro": "node -e \"const fs=require('fs'); const os=require('os'); const p=require('path'); const tmp=os.tmpdir(); ['metro-cache','metro','react-native','@expo'].forEach(d=>{try{fs.rmSync(p.join(tmp,d),{recursive:true,force:true});}catch{}}); console.log('Metro cache cleaned');\""
   },
@@ -55,7 +56,7 @@
     "@babel/plugin-transform-runtime": "^7.28.3",
     "@babel/preset-typescript": "^7.27.1",
     "@babel/runtime": "^7.28.3",
-    "@testing-library/react": "^13.4.0",
+    "@testing-library/react": "^16.0.1",
     "@testing-library/react-hooks": "^8.0.1",
     "@types/jest": "^27.5.2",
     "@types/node": "^24.3.0",
@@ -74,6 +75,12 @@
     "tailwindcss": "^4.1.11",
     "ts-jest": "^29.4.1",
     "typescript": "~5.5.4"
+  },
+  "overrides": {
+    "@testing-library/react": {
+      "react": "19.0.0",
+      "react-dom": "19.0.0"
+    }
   },
   "private": true
 }
