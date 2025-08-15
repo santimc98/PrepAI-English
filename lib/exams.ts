@@ -1,122 +1,101 @@
-import type { ExamMock, Question } from '@/types/exam';
-import { getDefaultLevel } from '@/lib/prefs';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// lib/exams.ts
+import { supabase } from '@/lib/supabase';
+import type { ExamLevel } from '@/types/level';
+import type { Exam, ExamSection } from '@/types/exam';
 
-export function createSimpleMock(level: ExamMock['level']): ExamMock {
-  const uid = () => Math.random().toString(36).slice(2, 10);
-  const now = Date.now();
-  const questions: Question[] = [
-    {
-      id: uid(),
-      section: 'reading',
-      prompt: 'Select the correct option: She has lived in London _____ 2015.',
-      choices: [
-        { id: uid(), text: 'for' },
-        { id: uid(), text: 'since' },
-        { id: uid(), text: 'from' },
-      ],
-      answer: 'since',
-    },
-    {
-      id: uid(),
-      section: 'use_of_english',
-      prompt: 'Rewrite: They started working here 3 years ago. (been) They ______ 3 years.',
-      answer: 'have been working here for',
-    },
-  ];
-
-  return {
-    id: uid(),
-    title: `Mock ${level}`,
-    level,
-    questions,
-    createdAt: now,
-  };
+// Helper local: evita problemas de import de ./utils
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms = 10_000,
+  message = `Timeout after ${ms}ms`
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message)), ms);
+    promise
+      .then((v) => { clearTimeout(t); resolve(v); })
+      .catch((e) => { clearTimeout(t); reject(e); });
+  });
 }
 
-// Alias to align with spec naming used elsewhere
-export const generateMockExam = createSimpleMock;
+type GetExamOpts = {
+  sections: ExamSection[];
+  level?: ExamLevel;
+};
 
-// Utility: timeout wrapper
-export async function withTimeout<T>(fn: () => Promise<T>, ms: number): Promise<T> {
-  return await Promise.race<T>([
-    fn(),
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)) as Promise<T>,
-  ]);
-}
+export async function getExam(opts: GetExamOpts): Promise<Exam> {
+  const level: ExamLevel = opts.level ?? 'B2';
 
-// Cloud toggle (dev) from AsyncStorage; default true
-export async function getCloudToggle(): Promise<boolean> {
-  try {
-    const v = await AsyncStorage.getItem('dev:cloudExam');
-    if (v == null) return true; // default true
-    return v === 'true';
-  } catch {
-    return true;
-  }
-}
+  const useCloud =
+    process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' &&
+    !!supabase;
 
-export async function generateExamViaEdge(params: { level: string; sections: string[] }) {
-  const base = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-  
-  if (!base || !key) {
-    throw new Error('EXPO_PUBLIC_SUPABASE_URL/ANON_KEY no configuradas');
-  }
-  
-  try {
-    const resp = await fetch(`${base}/functions/v1/generate-exam`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify(params),
-    });
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(`Edge generation failed: ${resp.status} ${resp.statusText}${text ? ` - ${text}` : ''}`);
-    }
-    return await resp.json();
-  } catch (e: any) {
-    throw new Error(e?.message || 'Edge request failed');
-  }
-}
-
-export async function getExam(params: { level?: string; sections: string[] }): Promise<ExamMock> {
-  const level = params.level || (await getDefaultLevel()) || 'B2';
-  const useCloud = (await getCloudToggle()) && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
   if (useCloud) {
     try {
-      const res: any = await withTimeout(() => generateExamViaEdge({ level, sections: params.sections }), 10_000);
-      // Adaptar respuesta de la edge a nuestro ExamMock
-      const questions: Question[] = (res.sections || []).flatMap((s: any) =>
-        (s.items || []).map((it: any) => ({
-          id: String(it.id ?? `${s.name}-${Math.random().toString(36).slice(2, 8)}`),
-          section: String(s.name || 'reading').toLowerCase(),
-          prompt: String(it.prompt || ''),
-          choices: Array.isArray(it.options)
-            ? it.options.map((opt: string) => ({ id: `${it.id ?? 'opt'}-${opt}`, text: String(opt) }))
-            : undefined,
-          answer: it.answer != null ? String(it.answer) : undefined,
-          // optional explanation passthrough
-          ...(it.explanation ? { explanation: String(it.explanation) } : {}),
-        }))
+      const exam = await withTimeout(
+        generateExamViaEdge({ level, sections: opts.sections }),
+        10_000
       );
-      return {
-        id: Math.random().toString(36).slice(2, 10),
-        title: res.title ?? `Mock ${level}`,
-        level: (res.level as ExamMock['level']) ?? (level as any),
-        createdAt: Date.now(),
-        questions,
-      };
-    } catch {
-      // fallthrough to local
+      if (exam) return exam;
+    } catch (e) {
+      console.warn('[exams] Edge failed, falling back to mock:', e);
     }
   }
-  return generateMockExam(level as any);
+  return generateMockExam(level, opts.sections);
 }
 
-// TODO: Integrar esta función en más pantallas cuando se despliegue la Edge Function
+// -------- Edge Function ----------
+async function generateExamViaEdge(params: {
+  level: ExamLevel;
+  sections: ExamSection[];
+}): Promise<Exam> {
+  const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-exam`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      level: params.level,
+      sections: params.sections,
+    }),
+  });
+  if (!res.ok) throw new Error(`Edge ${res.status}`);
+  const json = await res.json();
+  return { ...json, level: params.level } as Exam;
+}
 
-
+// -------- Mock local ----------
+export function generateMockExam(
+  level: ExamLevel,
+  sections: ExamSection[]
+): Exam {
+  const now = Date.now();
+  return {
+    id: `mock-${now}`,
+    title: `Simulacro ${level}`,
+    level,
+    sections: sections.length
+      ? sections
+      : (['Reading', 'Use of English', 'Listening'] as ExamSection[]),
+    items: [
+      {
+        id: `q1-${now}`,
+        type: 'mcq',
+        prompt: `[${level}] Choose the correct option to complete the sentence.`,
+        options: ['A', 'B', 'C', 'D'],
+        answer: 1,
+        section: 'Reading',
+        points: 1,
+      },
+      {
+        id: `q2-${now}`,
+        type: 'gap',
+        prompt: `[${level}] Fill the gap with the correct form.`,
+        answer: 'example',
+        section: 'Use of English',
+        points: 1,
+      },
+    ],
+  } as unknown as Exam;
+}

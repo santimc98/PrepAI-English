@@ -35,7 +35,7 @@ export default function EmailAuthScreen() {
   const [show, setShow] = useState(false);
   const passwordRef = useRef<TextInput | null>(null);
 
-  const redirectTo = getRedirectTo();
+  const _redirectTo = getRedirectTo();
 
   const emailValid = useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
 

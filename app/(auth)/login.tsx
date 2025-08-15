@@ -8,7 +8,7 @@ import Container from '@/components/layout/Container';
 import { useToast } from '@/providers/Toast';
 
 export default function LoginScreen() {
-  const { signInWithProvider, initializing } = useAuth();
+  const { signInWithProvider, initializing: _initializing } = useAuth();
   const toast = useToast();
 
   return (
@@ -33,7 +33,7 @@ export default function LoginScreen() {
               accessibilityRole="link"
               onPress={() => {
                 if (Platform.OS === 'web') console.log('[nav] go /email clicked');
-                router.push('/(auth)/email');
+                router.push('/email');
               }}
               style={[tw`items-center rounded-xl px-5 py-3`, { backgroundColor: '#1d4ed8' }]}
             >

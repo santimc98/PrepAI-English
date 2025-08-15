@@ -3,17 +3,21 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "types": [],
+    "types": ["jest"],
     "baseUrl": ".",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    
-  ]
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**/*.ts",
+    "**/__tests__/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
 }

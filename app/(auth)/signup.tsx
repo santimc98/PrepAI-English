@@ -18,7 +18,7 @@ function getRedirectTo(): string {
 type Alert = { type: 'success' | 'error'; text: string } | null;
 
 export default function SignupScreen() {
-  const router = useRouter();
+  const _router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

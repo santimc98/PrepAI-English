@@ -1,59 +1,91 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+// providers/PrefsProvider.tsx
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import type { ExamLevel } from '@/types/level';
+import { useAuth } from '@/providers/AuthProvider';
+import { getProfileDefaultLevel, updateDefaultLevel } from '@/lib/db';
 
-type Ctx = { level: ExamLevel | null; setLevel: (l: ExamLevel) => Promise<void>; ready: boolean };
-const PrefsCtx = createContext<Ctx>({ level: null, setLevel: async () => {}, ready: false });
+type Ctx = {
+  level: ExamLevel;
+  setLevel: (next: ExamLevel) => Promise<void>;
+};
 
-const KEY = 'pref:defaultExamLevel';
+const DEFAULT_LEVEL: ExamLevel = 'B2';
+const KEY = 'prefs:level';
 
-function readLevelSyncWeb(): ExamLevel | null {
+const PrefsContext = createContext<Ctx>({
+  level: DEFAULT_LEVEL,
+  setLevel: async () => {},
+});
+
+function getStorage() {
+  // web: localStorage; nativo: AsyncStorage (carga segura)
+  if (Platform.OS === 'web') {
+    return {
+      getItem: async (k: string) => (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null),
+      setItem: async (k: string, v: string) => {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(k, v);
+      },
+    };
+  }
   try {
-    const v = globalThis?.localStorage?.getItem(KEY) ?? null;
-    return v === 'B1' || v === 'B2' || v === 'C1' || v === 'C2' ? (v as ExamLevel) : null;
+    // require dinámico para evitar "window is not defined" en web
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return {
+      getItem: AsyncStorage.getItem,
+      setItem: AsyncStorage.setItem,
+    };
   } catch {
-    return null;
+    return {
+      getItem: async () => null,
+      setItem: async () => {},
+    };
   }
 }
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
-  const [level, setLevelState] = useState<ExamLevel | null>(Platform.OS === 'web' ? readLevelSyncWeb() : null);
-  const [ready, setReady] = useState(Platform.OS === 'web');
+  const { session } = useAuth();
+  const [level, setLevelState] = useState<ExamLevel>(DEFAULT_LEVEL);
+  const storage = useMemo(getStorage, []);
 
+  // Carga inicial: prioridad nube si hay sesión; si no, local; fallback B2
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      (async () => {
-        const { getDefaultLevel } = await import('@/lib/prefs');
-        try { setLevelState(await getDefaultLevel()); } catch {}
-        setReady(true);
-      })();
-    }
-  }, []);
-
-  const setLevel = useCallback(async (l: ExamLevel) => {
-    try {
-      if (Platform.OS === 'web') {
-        localStorage.setItem(KEY, l);
-      } else {
-        const { setDefaultLevel } = await import('@/lib/prefs');
-        await setDefaultLevel(l);
+    (async () => {
+      let initial: ExamLevel | null = null;
+      if (session?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
+        initial = await getProfileDefaultLevel();
       }
-      setLevelState(l);
+      if (!initial) {
+        const raw = (await storage.getItem(KEY)) as string | null;
+        if (raw === 'B1' || raw === 'B2' || raw === 'C1' || raw === 'C2') initial = raw as ExamLevel;
+      }
+      setLevelState(initial ?? DEFAULT_LEVEL);
+    })();
+  }, [session?.user?.id]);
+
+  const setLevel = async (next: ExamLevel) => {
+    // Reactivo inmediato
+    setLevelState(next);
+
+    // Persistencia local
+    try {
+      await storage.setItem(KEY, next);
+    } catch (e) {
+      console.warn('[prefs] setItem failed', e);
+    }
+
+    // Persistencia en nube
+    if (session?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
       try {
-        const { updateDefaultLevel } = await import('@/lib/db');
-        await updateDefaultLevel?.(l as any);
-      } catch {}
-    } catch {}
-  }, []);
+        await updateDefaultLevel(next);
+      } catch (e) {
+        console.warn('[prefs] updateDefaultLevel failed', e);
+      }
+    }
+  };
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const handler = (e: StorageEvent) => { if (e.key === KEY) setLevelState(readLevelSyncWeb()); };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, []);
-
-  return <PrefsCtx.Provider value={{ level, setLevel, ready }}>{children}</PrefsCtx.Provider>;
+  return <PrefsContext.Provider value={{ level, setLevel }}>{children}</PrefsContext.Provider>;
 }
 
-export function usePrefs() { return useContext(PrefsCtx); }
+export const usePrefs = () => useContext(PrefsContext);

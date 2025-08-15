@@ -1,26 +1,40 @@
+// types/exam.ts
+import type { ExamLevel } from '@/types/level';
+
 export type CEFRLevel = 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
-export type ExamSectionType = 'reading' | 'listening' | 'use_of_english' | 'writing' | 'speaking';
+/**
+ * Secciones que usamos en la app/web actual.
+ * (Nómbrelas tal y como las mostramos al usuario para evitar mapeos innecesarios)
+ */
+export type ExamSection =
+  | 'Reading'
+  | 'Use of English'
+  | 'Listening'
+  | 'Writing'
+  | 'Speaking';
 
-export type Choice = {
+export type ExamItem = {
   id: string;
-  text: string;
-};
-
-export type Question = {
-  id: string;
+  type: 'mcq' | 'gap' | 'open';
   prompt: string;
-  choices?: Choice[]; // si no hay choices, es abierta
-  answer?: string; // correcta (para autocorrección)
-  section: ExamSectionType;
+  options?: string[]; // para mcq
+  answer?: any; // solución (mock/autocorrección)
+  section: ExamSection;
+  points?: number;
 };
 
-export type ExamMock = {
+/**
+ * Tipo base de examen que viaja por toda la app (mock o edge).
+ */
+export type Exam = {
   id: string;
   title: string;
-  level: CEFRLevel;
-  questions: Question[];
-  createdAt: number;
+  level?: ExamLevel;       // <- importante para adaptar dificultad
+  sections?: ExamSection[]; // opcional (algunos mocks la incluyen)
+  items: ExamItem[];
+  createdAt?: number;
 };
 
-
+// Compat: si en algún sitio estaban usando "ExamMock", que apunte a Exam
+export type ExamMock = Exam;

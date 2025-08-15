@@ -8,12 +8,14 @@ import { useEffect, useState } from "react";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { UiThemeContext } from '@/providers/UiTheme';
 import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { ToastProvider } from '@/providers/Toast';
 import { PrefsProvider, usePrefs } from '@/providers/PrefsProvider';
-import type { ExamLevel } from '@/types/level';
+import { queryClient } from '@/lib/queryClient';
+
 
 function RootNavigationGate() {
   const segments = useSegments();
@@ -36,8 +38,7 @@ function RootNavigationGate() {
 
 function LevelGate() {
   const pathname = usePathname();
-  const { level, ready } = usePrefs();
-  if (!ready) return null;
+  const { level } = usePrefs();
   const inAuthGroup = pathname?.startsWith('/(auth)');
   const isOnboarding = pathname?.startsWith('/onboarding');
   if (inAuthGroup) return null;
@@ -67,24 +68,26 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <UiThemeContext.Provider value={{ colorScheme, setColorScheme }}>
-        <ToastProvider>
-          <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <PrefsProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: "transparent" },
-                }}
-              />
-              <RootNavigationGate />
-              <LevelGate />
-            </PrefsProvider>
-          </SafeAreaView>
-        </ToastProvider>
-      </UiThemeContext.Provider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <UiThemeContext.Provider value={{ colorScheme, setColorScheme }}>
+          <ToastProvider>
+            <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
+              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+              <PrefsProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: "transparent" },
+                  }}
+                />
+                <RootNavigationGate />
+                <LevelGate />
+              </PrefsProvider>
+            </SafeAreaView>
+          </ToastProvider>
+        </UiThemeContext.Provider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
