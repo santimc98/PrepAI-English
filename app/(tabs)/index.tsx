@@ -13,12 +13,16 @@ import { useAuth } from '@/providers/AuthProvider';
 import { listMyAttempts } from '@/lib/db';
 import { getAttempts, type Attempt } from '@/lib/storage';
 import { computePointsFromAttempts, levelFromPoints } from '@/lib/gamify';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function Home() {
   const router = useRouter();
   const { session } = useAuth();
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [challengeDone, setChallengeDone] = useState(false);
+  
+  // Obtener el nivel de certificación actual del usuario
+  const { certificationLevel, isReady } = useUserPreferences();
 
   useEffect(() => {
     (async () => {
@@ -65,7 +69,7 @@ export default function Home() {
       <View style={tw`mt-4 gap-4`}>
         <ActionCard
           title="Empezar simulacro"
-          subtitle="Simulacro de examen completo (B2). Pon a prueba tu nivel ahora"
+          subtitle={`Simulacro de examen completo (${isReady ? certificationLevel || 'B1' : '...')}. Pon a prueba tu nivel ahora`}
           icon="school"
           tone="primary"
           onPress={() => router.push('/(tabs)/exams' as any)}
