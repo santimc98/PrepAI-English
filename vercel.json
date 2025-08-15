@@ -1,8 +1,12 @@
 {
+  "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm ci --legacy-peer-deps",
   "framework": null,
+  "env": {
+    "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
