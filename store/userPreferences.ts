@@ -32,7 +32,9 @@ const storage = {
   getItem: async (key: string): Promise<string | null> => {
     // 1) intenta AsyncStorage (funciona con el mock en Jest)
     try {
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const mod = await import('@react-native-async-storage/async-storage');
+      // Soporta mocks que exportan default o CJS
+      const AsyncStorage: any = (mod as any).default ?? (mod as any);
       const v = await AsyncStorage.getItem(key);
       if (v != null) return v;
     } catch {}
@@ -45,7 +47,10 @@ const storage = {
   setItem: async (key: string, value: string): Promise<void> => {
     // 1) intenta AsyncStorage (mockeable en Jest)
     try {
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const mod = await import('@react-native-async-storage/async-storage');
+      // Soporta mocks que exportan default o CJS
+      const AsyncStorage: any = (mod as any).default ?? (mod as any);
+
       await AsyncStorage.setItem(key, value);
       return;
     } catch {}
