@@ -1,19 +1,11 @@
 import { useState, useMemo } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import AuthCard from '@/components/AuthCard';
 import { supabase } from '@/lib/supabase';
 import tw from '@/lib/tw';
 import { theme } from '@/lib/theme';
-
-function getRedirectTo(): string {
-  const url = Linking.createURL('auth/callback');
-  if (typeof window !== 'undefined' && !url.startsWith('http')) {
-    return `${window.location.origin}/auth/callback`;
-  }
-  return url;
-}
+import { getRedirectTo } from '@/lib/auth';
 
 type Alert = { type: 'success' | 'error'; text: string } | null;
 
