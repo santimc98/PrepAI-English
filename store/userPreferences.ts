@@ -30,29 +30,30 @@ const STORAGE_KEY = 'prefs:certLevel:v1';
 // Storage abstraction for web and native
 const storage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (Platform.OS === 'web') {
-      return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
-    }
+    // 1) intenta AsyncStorage (funciona con el mock en Jest)
     try {
       const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      return AsyncStorage.getItem(key);
-    } catch (e) {
-      console.warn('Storage getItem failed', e);
-      return null;
-    }
+      const v = await AsyncStorage.getItem(key);
+      if (v != null) return v;
+    } catch {}
+    // 2) cae a localStorage en web
+    try {
+      if (typeof localStorage !== 'undefined') return localStorage.getItem(key);
+    } catch {}
+    return null;
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (Platform.OS === 'web') {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(key, value);
-      }
-      return;
-    }
+    // 1) intenta AsyncStorage (mockeable en Jest)
     try {
       const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
       await AsyncStorage.setItem(key, value);
+      return;
+    } catch {}
+    // 2) cae a localStorage en web
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
     } catch (e) {
-      console.warn('Storage setItem failed', e);
+      console.error('Storage setItem failed', e);
     }
   },
 };
@@ -155,6 +156,7 @@ class UserPreferencesStore implements UserPreferencesState {
 
   public async initialize(): Promise<void> {
     if (this._initialized) return;
+    await this.getDeviceId().catch(() => {});
     this._initialized = true;
     
     // Set initial state before hydration to avoid UI flash
@@ -236,14 +238,14 @@ class UserPreferencesStore implements UserPreferencesState {
 
     // Persist to local storage if requested
     if (options.persist) {
-      operations.push(
-        storage.setItem(STORAGE_KEY, JSON.stringify(normalizedLevel))
-          .catch(e => {
-            console.warn('Failed to persist certification level', e);
-            // Consider queuing for later retry
-          })
+    operations.push(
+      storage.setItem(STORAGE_KEY, JSON.stringify(normalizedLevel))
+        .catch(e => {
+          console.error('Failed to persist certification level', e);
+        })
       );
     }
+
 
     // Sync with server if requested (fire and forget)
     if (options.syncServer && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
