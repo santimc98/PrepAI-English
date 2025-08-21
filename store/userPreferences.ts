@@ -1,5 +1,6 @@
 import { Platform, PlatformOSType } from 'react-native';
-import { eventBus } from './eventBus';
+import * as _eventBus from '@/store/eventBus';
+const __bus = (_eventBus as any)?.eventBus ?? { on() {}, off() {}, emit() {} };
 import * as Application from 'expo-application';
 
 // Telemetry event types
@@ -225,7 +226,7 @@ class UserPreferencesStore implements UserPreferencesState {
     this._notifyListeners();
     
     // Emit event for cache invalidation and other listeners
-    eventBus.emit('prefs:certLevel:changed', { 
+    __bus.emit('prefs:certLevel:changed', { 
       from: prevLevel, 
       to: normalizedLevel 
     });

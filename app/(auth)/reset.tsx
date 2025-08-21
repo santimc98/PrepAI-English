@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import AuthCard from '@/components/AuthCard';
 import { supabase } from '@/lib/supabase';
 import tw from '@/lib/tw';
