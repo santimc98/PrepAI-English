@@ -29,8 +29,10 @@ jest.mock('@/store/eventBus', () => {
     }),
   };
 
-  return { eventBus: mock, default: mock };
+  // 👇 Soporta: default, nombrado { eventBus }, y namespace `* as eventBus`
+  return { on: mock.on, off: mock.off, emit: mock.emit, eventBus: mock, default: mock };
 });
+
 
 jest.mock('expo-application', () => ({
   getIosIdForVendorAsync: jest.fn(async () => 'ios-id-test'),

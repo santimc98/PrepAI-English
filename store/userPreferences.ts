@@ -325,4 +325,8 @@ class UserPreferencesStore implements UserPreferencesState {
 
 // Create and initialize the store
 export const userPreferencesStore = new UserPreferencesStore();
-userPreferencesStore.initialize().catch(console.error);
+
+// 👇 evita inicializar automáticamente en tests
+if (process.env.NODE_ENV !== 'test') {
+  userPreferencesStore.initialize().catch(console.error);
+}
