@@ -1,5 +1,7 @@
 // app/_layout.tsx     ← raíz de la carpeta app
-import { useRouter, useSegments, Stack } from "expo-router";
+
+import { useRouter, useSegments, Stack, Redirect, usePathname } from "expo-router";
+
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
 import tw from "@/lib/tw";
@@ -8,10 +10,14 @@ import { useEffect, useState } from "react";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { UiThemeContext } from '@/providers/UiTheme';
 import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { ToastProvider } from '@/providers/Toast';
+import { PrefsProvider, usePrefs } from '@/providers/PrefsProvider';
+import { queryClient } from '@/lib/queryClient';
+
 
 function RootNavigationGate() {
   const segments = useSegments();
@@ -30,7 +36,19 @@ function RootNavigationGate() {
 
   // Effect-only gate to redirect based on auth; do not render another navigator here.
   return null;
+
 }
+
+function LevelGate() {
+  const pathname = usePathname();
+  const { level } = usePrefs();
+  const inAuthGroup = pathname?.startsWith('/(auth)');
+  const isOnboarding = pathname?.startsWith('/onboarding');
+  if (inAuthGroup) return null;
+  if (!level && !isOnboarding) return <Redirect href="/onboarding/level" />;
+  return null;
+}
+
 
 export default function RootLayout() {
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light');
@@ -54,21 +72,26 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <UiThemeContext.Provider value={{ colorScheme, setColorScheme }}>
-        <ToastProvider>
-          <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "transparent" },
-              }}
-            />
-            <RootNavigationGate />
-          </SafeAreaView>
-        </ToastProvider>
-      </UiThemeContext.Provider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <UiThemeContext.Provider value={{ colorScheme, setColorScheme }}>
+          <ToastProvider>
+            <SafeAreaView style={[tw`flex-1`, { backgroundColor: colorScheme === 'dark' ? '#0b1220' : '#f8fafc' }]}>        
+              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+              <PrefsProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: "transparent" },
+                  }}
+                />
+                <RootNavigationGate />
+                <LevelGate />
+              </PrefsProvider>
+            </SafeAreaView>
+          </ToastProvider>
+        </UiThemeContext.Provider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

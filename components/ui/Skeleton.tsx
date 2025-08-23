@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, ViewStyle } from 'react-native';
+import { Animated, type ViewStyle } from 'react-native';
 
 export function Skeleton({ height = 16, width = '100%', style }: { height?: number; width?: number | `${number}%` | 'auto'; style?: ViewStyle }) {
   const opacity = useRef(new Animated.Value(0.6)).current;

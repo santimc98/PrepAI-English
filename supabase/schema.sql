@@ -3,6 +3,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text unique,
   display_name text,
+  default_level text check (default_level in ('B1','B2','C1','C2')),
   created_at timestamptz default now()
 );
 alter table public.profiles enable row level security;

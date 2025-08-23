@@ -7,11 +7,17 @@ import Heading from '@/components/ui/Heading';
 import TextMuted from '@/components/ui/TextMuted';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { getDefaultLevel } from '@/lib/prefs';
+import type { ExamLevel } from '@/types/level';
+import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [dark, setDark] = useState(false);
   const [useCloud, setUseCloud] = useState(false);
+  const [defaultLevel, setDefaultLevelState] = useState<ExamLevel | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -20,6 +26,8 @@ export default function SettingsScreen() {
         setDark(pref === 'dark');
         const cloud = await AsyncStorage.getItem('dev:cloudExam');
         setUseCloud(cloud == null ? true : cloud === 'true');
+        const lvl = await getDefaultLevel();
+        setDefaultLevelState(lvl);
       } catch {}
     })();
   }, []);
@@ -45,19 +53,43 @@ export default function SettingsScreen() {
       <Heading>Ajustes</Heading>
       <TextMuted>{user?.email}</TextMuted>
 
-      <View style={tw`mt-4 flex-row items-center justify-between`}>
-        <Text style={tw`font-medium`}>Modo oscuro (beta)</Text>
-        <Switch value={dark} onValueChange={toggleTheme} />
-      </View>
+      <Card style={tw`mt-4 p-4`}>
+        <Text style={tw`font-semibold`}>Apariencia</Text>
+        <View style={tw`mt-3 flex-row items-center justify-between`}>
+          <View style={tw`flex-1 pr-3`}>
+            <Text style={tw`font-medium`}>Modo oscuro (beta)</Text>
+            <TextMuted>Interfaz con fondo oscuro. Puede requerir recargar.</TextMuted>
+          </View>
+          <Switch value={dark} onValueChange={toggleTheme} />
+        </View>
+      </Card>
 
       {process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' ? (
-        <View style={tw`mt-4 flex-row items-center justify-between`}>
-          <Text style={tw`font-medium`}>Usar nube para generar exámenes (dev)\n<TextMuted>(requiere .env EXPO_PUBLIC_USE_SUPABASE=true)</TextMuted></Text>
-          <Switch value={useCloud} onValueChange={toggleCloud} />
-        </View>
+        <Card style={tw`mt-4 p-4`}>
+          <Text style={tw`font-semibold`}>Desarrollo</Text>
+          <View style={tw`mt-3 flex-row items-center justify-between`}>
+            <View style={tw`flex-1 pr-3`}>
+              <Text style={tw`font-medium`}>Usar nube para generar exámenes</Text>
+              <TextMuted>Requiere .env EXPO_PUBLIC_USE_SUPABASE=true</TextMuted>
+            </View>
+            <Switch value={useCloud} onValueChange={toggleCloud} />
+          </View>
+        </Card>
       ) : null}
 
-      <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-6`, { backgroundColor: '#ef4444' }]} />
+      <Card style={tw`mt-4 p-4`}>
+        <Text style={tw`font-semibold`}>Preferencias</Text>
+        <View style={tw`mt-3`}>
+          <Text style={tw`font-medium`}>Nivel de examen por defecto: <Text style={tw`font-semibold`}>{defaultLevel ?? 'B2'}</Text></Text>
+          <TextMuted>Puedes cambiarlo cuando quieras.</TextMuted>
+          <Button title="Cambiar nivel" onPress={() => router.push('/onboarding/level?edit=true' as any)} style={tw`mt-3`} />
+        </View>
+      </Card>
+
+      <Card style={tw`mt-4 p-4`}>
+        <Text style={tw`font-semibold`}>Cuenta</Text>
+        <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-3`, { backgroundColor: '#ef4444' }]} />
+      </Card>
     </Container>
   );
 }

@@ -1,0 +1,63 @@
+diff --git a/app/onboarding/level.tsx b/app/onboarding/level.tsx
+--- a/app/onboarding/level.tsx
++++ b/app/onboarding/level.tsx
+@@
+-import { View, Text, Pressable } from 'react-native';
+-import { useRouter } from 'expo-router';
+-import { useAuth } from '@/providers/AuthProvider';
+-import { usePrefs } from '@/providers/PrefsProvider';
++import { View, Text, Pressable, Platform } from 'react-native';
++import { router } from 'expo-router';
++import { useAuth } from '@/providers/AuthProvider';
++import { usePrefs } from '@/providers/PrefsProvider';
++import { upsertProfile } from '@/lib/db';
++import type { ExamLevel } from '@/types/exam';
+@@
+-export default function LevelScreen() {
+-  const router = useRouter();
+-  const { session } = useAuth();
+-  const { setLevel } = usePrefs();
++export default function LevelScreen() {
++  const { session } = useAuth();
++  const { setLevel } = usePrefs();
++
++  async function pickLevel(next: ExamLevel) {
++    try {
++      // 1) Persistir preferencia local (PrefsProvider -> AsyncStorage)
++      await setLevel(next, { persist: true });
++      // 2) Persistir en Supabase si hay usuario y la nube está activada
++      if (session?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
++        await upsertProfile({ id: session.user.id, exam_level: next });
++      }
++    } catch {}
++    // 3) Ir a las pestañas principales
++    if (Platform.OS === 'web') console.log('[onboarding] level ->', next);
++    router.replace('/(tabs)');
++  }
+@@
+-  return (
++  return (
+     <View /* ... contenedor ... */>
+@@
+-      <Pressable onPress={() => setLevel('B1')}>
++      <Pressable onPress={() => pickLevel('B1')}>
+         {/* ... tarjeta B1 ... */}
+       </Pressable>
+@@
+-      <Pressable onPress={() => setLevel('B2')}>
++      <Pressable onPress={() => pickLevel('B2')}>
+         {/* ... tarjeta B2 ... */}
+       </Pressable>
+@@
+-      <Pressable onPress={() => setLevel('C1')}>
++      <Pressable onPress={() => pickLevel('C1')}>
+         {/* ... tarjeta C1 ... */}
+       </Pressable>
+@@
+-      <Pressable onPress={() => setLevel('C2')}>
++      <Pressable onPress={() => pickLevel('C2')}>
+         {/* ... tarjeta C2 ... */}
+       </Pressable>
+     </View>
+   );
+ }

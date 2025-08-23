@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Text, View } from 'react-native';
+import { Animated, Easing, Text, View, Platform } from 'react-native';
 import tw from '@/lib/tw';
 
 export type ToastApi = {
@@ -26,9 +26,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
     setVariant(v);
     setMessage(text);
-    Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true, easing: Easing.out(Easing.cubic) }).start();
+    const useDriver = Platform.OS !== 'web';
+    Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: useDriver, easing: Easing.out(Easing.cubic) }).start();
     timeoutRef.current = setTimeout(() => {
-      Animated.timing(opacity, { toValue: 0, duration: 160, useNativeDriver: true, easing: Easing.in(Easing.cubic) }).start();
+      Animated.timing(opacity, { toValue: 0, duration: 160, useNativeDriver: useDriver, easing: Easing.in(Easing.cubic) }).start();
     }, 1800);
   }, [opacity]);
 
