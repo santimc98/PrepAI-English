@@ -17,9 +17,6 @@
   "clean:metro": "node -e \"const fs=require('fs'); const os=require('os'); const p=require('path'); const tmp=os.tmpdir(); ['metro-cache','metro-file-map'].forEach(d=>{try{fs.rmSync(p.join(tmp,d),{recursive:true,force:true})}catch{}}); console.log('🧹 Cleared Metro cache in temp dir');\""
 },
 
-  "jest": {
-    "preset": "jest-expo"
-  },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
     "@expo/vector-icons": "^14.1.0",
