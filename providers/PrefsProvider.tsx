@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import type { ExamLevel } from '@/types/level';
 import { useAuth } from '@/providers/AuthProvider';
 import { getProfileDefaultLevel, updateDefaultLevel } from '@/lib/db';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Ctx = {
   level: ExamLevel;
@@ -31,7 +32,7 @@ function getStorage() {
   try {
     // require dinámico para evitar "window is not defined" en web
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    
     return {
       getItem: AsyncStorage.getItem,
       setItem: AsyncStorage.setItem,
@@ -62,7 +63,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
       }
       setLevelState(initial ?? DEFAULT_LEVEL);
     })();
-  }, [session?.user?.id]);
+  }, [session?.user, storage]);
 
   const setLevel = async (next: ExamLevel) => {
     // Reactivo inmediato

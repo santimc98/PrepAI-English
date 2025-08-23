@@ -1,5 +1,7 @@
 // app/_layout.tsx     ← raíz de la carpeta app
+
 import { useRouter, useSegments, Stack, Redirect, usePathname } from "expo-router";
+
 // Cargar estilos web globales (procesado por el bundler web de Expo, no por Babel)
 import "./global.css";
 import tw from "@/lib/tw";
@@ -8,7 +10,7 @@ import { useEffect, useState } from "react";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { UiThemeContext } from '@/providers/UiTheme';
 import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
@@ -34,6 +36,7 @@ function RootNavigationGate() {
 
   // Effect-only gate to redirect based on auth; do not render another navigator here.
   return null;
+
 }
 
 function LevelGate() {
@@ -45,6 +48,7 @@ function LevelGate() {
   if (!level && !isOnboarding) return <Redirect href="/onboarding/level" />;
   return null;
 }
+
 
 export default function RootLayout() {
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light');

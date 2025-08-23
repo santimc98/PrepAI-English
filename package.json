@@ -3,17 +3,22 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "test": "jest --ci --passWithNoTests",
-    "dev": "expo start --tunnel",
-    "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc -p . --noEmit",
-    "build:web": "expo export --platform web --dump-sourcemap --non-interactive",
-    "clean:metro": "node -e \"const fs=require('fs'); const os=require('os'); const p=require('path'); const tmp=os.tmpdir(); ['metro-cache','metro','react-native','@expo'].forEach(d=>{try{fs.rmSync(p.join(tmp,d),{recursive:true,force:true});}catch{}}); console.log('Metro cache cleaned');\"",
-    "build": "expo export -p web"
+  "start": "expo start",
+  "android": "expo start --android",
+  "ios": "expo start --ios",
+  "web": "expo start --web",
+  "test": "jest --ci --passWithNoTests",
+  "dev": "expo start --tunnel",
+  "lint": "eslint . --ext .ts,.tsx",
+  "typecheck": "tsc -p . --noEmit",
+  "build": "npm run build:web",
+  "build:web": "expo export --platform web --dump-sourcemap --non-interactive",
+  "serve:dist": "npx serve dist -l 4173",
+  "clean:metro": "node -e \"const fs=require('fs'); const os=require('os'); const p=require('path'); const tmp=os.tmpdir(); ['metro-cache','metro-file-map'].forEach(d=>{try{fs.rmSync(p.join(tmp,d),{recursive:true,force:true})}catch{}}); console.log('🧹 Cleared Metro cache in temp dir');\""
+},
+
+  "jest": {
+    "preset": "jest-expo"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
