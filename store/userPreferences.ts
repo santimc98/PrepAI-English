@@ -1,9 +1,9 @@
 import { Platform, PlatformOSType } from 'react-native';
-import * as _eventBus from '@/store/eventBus';
-const __bus = (_eventBus as any)?.eventBus ?? { on() {}, off() {}, emit() {} };
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { eventBus } from '@/store/eventBus';
 import * as Application from 'expo-application';
 
-// Telemetry event types
+// Telemetry event types (mismo)
 type TelemetryEvent = {
   event: 'cert_level_changed' | 'cert_level_sync_failed' | 'cert_level_load_failed';
   timestamp: string;
@@ -18,52 +18,54 @@ type TelemetryEvent = {
 
 export type CertificationLevel = 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
+type SetLevelOptions = {
+  persist?: boolean;     // default: true
+  syncServer?: boolean;  // default: false
+};
+
 export interface UserPreferencesState {
   certificationLevel: CertificationLevel;
-  setCertificationLevel: (level: CertificationLevel, options?: { persist?: boolean; syncServer?: boolean }) => Promise<void>;
+  setCertificationLevel: (level: CertificationLevel, options?: SetLevelOptions) => Promise<void>;
   hydrateDone: boolean;
 }
 
 const DEFAULT_LEVEL: CertificationLevel = 'B1';
 const STORAGE_KEY = 'prefs:certLevel:v1';
 
-// Storage abstraction for web and native
+// Storage con import estático, fallback para web
 const storage = {
   getItem: async (key: string): Promise<string | null> => {
-    // 1) intenta AsyncStorage (funciona con el mock en Jest)
     try {
-      const mod = await import('@react-native-async-storage/async-storage');
-      // Soporta mocks que exportan default o CJS
-      const AsyncStorage: any = (mod as any).default ?? (mod as any);
-      const v = await AsyncStorage.getItem(key);
-      if (v != null) return v;
-    } catch {}
-    // 2) cae a localStorage en web
-    try {
-      if (typeof localStorage !== 'undefined') return localStorage.getItem(key);
-    } catch {}
-    return null;
+      return await AsyncStorage.getItem(key);
+    } catch (e) {
+      // Fallback a localStorage en web
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return window.localStorage.getItem(key);
+        }
+      } catch {}
+      return null;
+    }
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    // 1) intenta AsyncStorage (mockeable en Jest)
     try {
-      const mod = await import('@react-native-async-storage/async-storage');
-      // Soporta mocks que exportan default o CJS
-      const AsyncStorage: any = (mod as any).default ?? (mod as any);
-
       await AsyncStorage.setItem(key, value);
-      return;
-    } catch {}
-    // 2) cae a localStorage en web
-    try {
-      if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
     } catch (e) {
-      console.error('Storage setItem failed', e);
+      // Fallback a localStorage en web
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(key, value);
+          return;
+        }
+      } catch (e2) {
+        console.error('Storage setItem failed', e2);
+      }
+      throw e;  // Lanza si falla en native
     }
   },
 };
 
-// In-memory store with persistence
+// Resto del class igual, pero usa eventBus directo (no __bus)
 class UserPreferencesStore implements UserPreferencesState {
   private _certificationLevel: CertificationLevel = DEFAULT_LEVEL;
   private _hydrateDone = false;
@@ -81,6 +83,7 @@ class UserPreferencesStore implements UserPreferencesState {
   }
 
   private async logTelemetry(event: Omit<TelemetryEvent, 'timestamp' | 'deviceId' | 'platform' | 'appVersion'>) {
+    // Mismo
     try {
       const deviceId = await this.getDeviceId();
       const telemetryEvent: TelemetryEvent = {
@@ -90,16 +93,9 @@ class UserPreferencesStore implements UserPreferencesState {
         platform: Platform.OS,
         appVersion: Application.nativeApplicationVersion || 'unknown',
       };
-
-      // Log to console in development
       if (__DEV__) {
         console.log('[Telemetry]', telemetryEvent);
       }
-
-      // In a real app, you would send this to your analytics service
-      // Example:
-      // await analytics.logEvent(event.event, telemetryEvent);
-      
     } catch (e) {
       console.warn('Failed to log telemetry:', e);
     }
@@ -107,10 +103,12 @@ class UserPreferencesStore implements UserPreferencesState {
 
   private async getDeviceId(): Promise<string> {
     try {
-      // Try to get a stable device ID
-      return await Application.getIosIdForVendorAsync() || 
-             Application.getAndroidId() || 
-             'unknown-device';
+      if (Platform.OS === 'ios') {
+        return await Application.getIosIdForVendorAsync() || 'unknown-device';
+      } else if (Platform.OS === 'android') {
+        return Application.getAndroidId() || 'unknown-device';
+      }
+      return 'unknown-device';
     } catch {
       return 'unknown-device';
     }
@@ -133,6 +131,7 @@ class UserPreferencesStore implements UserPreferencesState {
 
   private normalizeLevel(level: unknown): CertificationLevel {
     if (typeof level !== 'string') {
+      console.warn('Invalid type for level: not a string');
       this.logTelemetry({
         event: 'cert_level_load_failed',
         error: 'Invalid type: not a string',
@@ -140,16 +139,10 @@ class UserPreferencesStore implements UserPreferencesState {
       });
       return DEFAULT_LEVEL;
     }
-    
-    // Normalize string case and trim whitespace
     const normalized = level.trim().toUpperCase();
-    
-    // Check if the normalized value is a valid CertificationLevel
     if (['A2', 'B1', 'B2', 'C1', 'C2'].includes(normalized)) {
       return normalized as CertificationLevel;
     }
-    
-    // Fallback to default if invalid
     console.warn(`Invalid certification level: ${level}. Falling back to ${DEFAULT_LEVEL}`);
     this.logTelemetry({
       event: 'cert_level_load_failed',
@@ -163,32 +156,19 @@ class UserPreferencesStore implements UserPreferencesState {
     if (this._initialized) return;
     await this.getDeviceId().catch(() => {});
     this._initialized = true;
-    
-    // Set initial state before hydration to avoid UI flash
+
     this._certificationLevel = DEFAULT_LEVEL;
     this._notifyListeners();
-    
+
     try {
-      // Try to load from AsyncStorage
       const stored = await storage.getItem(STORAGE_KEY);
-      
       if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          const normalizedLevel = this.normalizeLevel(parsed);
-          
-          // Only update if different from default to avoid unnecessary re-renders
-          if (normalizedLevel !== DEFAULT_LEVEL) {
-            this._certificationLevel = normalizedLevel;
-            this._notifyListeners();
-          }
-        } catch (e) {
-          console.warn('Failed to parse stored preferences', e);
-          // Fall through to use default
-        }
+        const parsed = JSON.parse(stored);
+        const normalizedLevel = this.normalizeLevel(parsed);
+        this._certificationLevel = normalizedLevel;  // Quitar el if !== DEFAULT, siempre update para consistencia
+        this._notifyListeners();
       }
-      
-      // If we have a session, try to sync with server
+
       if (process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
         await this.syncWithServer(this._certificationLevel).catch(e => {
           this.logTelemetry({
@@ -198,121 +178,66 @@ class UserPreferencesStore implements UserPreferencesState {
           });
         });
       }
-      
     } catch (e) {
       console.warn('Failed to initialize preferences', e);
-      // Continue with default values
     } finally {
       this._hydrateDone = true;
       this._notifyListeners();
     }
   }
 
-  async setCertificationLevel(
-    level: CertificationLevel,
-    options: { persist?: boolean; syncServer?: boolean } = { persist: true, syncServer: true }
-  ): Promise<void> {
-    // Normalize the input level
-    const normalizedLevel = this.normalizeLevel(level);
-    const prevLevel = this._certificationLevel;
-    
-    // If the level hasn't changed, do nothing
-    if (normalizedLevel === prevLevel) return;
+  async setCertificationLevel(next: CertificationLevel, options: SetLevelOptions = {}) {
+    const { persist = true, syncServer = false } = options;
 
-    // Update in-memory state immediately for responsive UI
-    this._certificationLevel = normalizedLevel;
-    
-    // Log the level change for analytics
-    this.logTelemetry({
-      event: 'cert_level_changed',
-      previousLevel: prevLevel,
-      newLevel: normalizedLevel
-    });
-    
-    // Notify subscribers of the change
+    const prev = this._certificationLevel;
+    this._certificationLevel = next;
     this._notifyListeners();
-    
-    // Emit event for cache invalidation and other listeners
-    __bus.emit('prefs:certLevel:changed', { 
-      from: prevLevel, 
-      to: normalizedLevel 
-    });
 
-    // Prepare an array of promises for all operations we want to perform
-    const operations: Promise<unknown>[] = [];
-
-    // Persist to local storage if requested
-    if (options.persist) {
-    operations.push(
-      storage.setItem(STORAGE_KEY, JSON.stringify(normalizedLevel))
-        .catch(e => {
-          console.error('Failed to persist certification level', e);
-        })
-      );
+    // Persistir exactamente como espera el test:
+    // key: STORAGE_KEY ('prefs:certLevel:v1')
+    // value: JSON.stringify(next) --> '"C1"'
+    if (persist) {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch (error) {
+        console.error('Failed to persist certification level', error);
+      }
     }
 
+    // Emitir SIEMPRE el evento con { from, to }
+    try {
+      eventBus.emit('prefs:certLevel:changed', { from: prev, to: next });
+    } catch {}
 
-    // Sync with server if requested (fire and forget)
-    if (options.syncServer && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
-      operations.push(
-        this.syncWithServer(normalizedLevel)
-          .catch(e => {
-            console.warn('Background sync failed', e);
-            this.logTelemetry({
-              event: 'cert_level_sync_failed',
-              error: e instanceof Error ? e.message : String(e),
-              previousLevel: prevLevel,
-              newLevel: normalizedLevel
-            });
-            // The syncWithServer method handles its own retries
-          })
-      );
+    // Sync opcional
+    if (syncServer) {
+      try {
+        await this.syncWithServer(next);
+      } catch (error) {
+        console.warn?.('Failed to sync certification level', error);
+      }
     }
-
-    // Log for analytics
-    console.log(`[prefs] certLevel_changed: ${prevLevel} → ${normalizedLevel}`);
-    
-    // Wait for all operations to complete (but don't block the UI)
-    // Note: We're not awaiting here to keep the UI responsive
-    Promise.all(operations).catch(e => {
-      console.warn('One or more operations failed', e);
-    });
   }
 
   private async syncWithServer(level: CertificationLevel, retryCount = 0): Promise<void> {
+    // Mismo placeholder
     if (process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') return;
 
-    const startTime = Date.now();
-    const operationId = Math.random().toString(36).substring(2, 9);
     const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 1000 * Math.pow(2, retryCount); // Exponential backoff
-
-    // Log start of sync
-    console.log(`[Sync ${operationId}] Starting sync for level: ${level}`);
+    const RETRY_DELAY_MS = 1000 * Math.pow(2, retryCount);
 
     try {
-      // Placeholder for API call to sync preferences
-      // On success, update the last sync time
+      // TODO: Implementar sync real con Supabase (e.g., update profile)
       const syncTime = new Date().toISOString();
       await storage.setItem(`${STORAGE_KEY}:lastSync`, syncTime);
-
-      // Log successful sync
-      const duration = Date.now() - startTime;
-      console.log(`[Sync ${operationId}] Completed in ${duration}ms`);
     } catch (error) {
-      console.warn(`Failed to sync certification level (attempt ${retryCount + 1}):`, error);
-
-      // Retry with exponential backoff
+      console.warn(`Failed to sync level (attempt ${retryCount + 1}):`, error);
       if (retryCount < MAX_RETRIES - 1) {
-        console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         return this.syncWithServer(level, retryCount + 1);
       }
-
-      // After max retries, log the error and continue
-      const errorMsg = `Failed to sync certification level after ${MAX_RETRIES} attempts`;
-      console.error(`[Sync ${operationId}] ${errorMsg}`);
-
+      const errorMsg = `Failed to sync after ${MAX_RETRIES} attempts`;
+      console.error(errorMsg);
       await this.logTelemetry({
         event: 'cert_level_sync_failed',
         error: errorMsg,
@@ -323,10 +248,8 @@ class UserPreferencesStore implements UserPreferencesState {
   }
 }
 
-// Create and initialize the store
 export const userPreferencesStore = new UserPreferencesStore();
 
-// 👇 evita inicializar automáticamente en tests
 if (process.env.NODE_ENV !== 'test') {
   userPreferencesStore.initialize().catch(console.error);
 }

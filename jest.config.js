@@ -1,36 +1,26 @@
-// jest.config.js
+/** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
-  testEnvironment: 'node',
-  rootDir: '.',
-  moduleFileExtensions: ['ts','tsx','js','jsx','json'],
-  moduleDirectories: ['node_modules', '<rootDir>'],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-    '^~/(.*)$': '<rootDir>/$1',
-  },
+  testEnvironment: 'jsdom',
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.test.config.js' }],
   },
+  setupFilesAfterEnv: [
+    '<rootDir>/jest.setup.ts',
+    // Si quieres usar el de mocks, descomenta la línea siguiente
+    // '<rootDir>/jest.setup.mocks.ts',
+  ],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^~/(.*)$': '<rootDir>/$1',
+    '^react-native$': '<rootDir>/__mocks__/react-native.ts',
+    '^expo-application$': '<rootDir>/__mocks__/expo-application.ts',
+    '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.ts'
+  },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)'
+    'node_modules/(?!(react-native|react-native-reanimated|@react-native|@react-navigation|expo(nent)?|expo-.*|@expo/.*)/)'
   ],
-  testMatch: ['**/__tests__/**/*.test.[jt]s?(x)'],
-
-  // 👇 NUEVO: mocks tempranos
-  setupFiles: ['<rootDir>/__tests__/jest.setup.mocks.ts'],
-
-  // 👇 Mantén tus matchers/extensiones aquí
-  setupFilesAfterEnv: ['<rootDir>/__tests__/setupTests.ts'],
-
-  collectCoverage: true,
-  collectCoverageFrom: [
-    '**/*.{js,jsx,ts,tsx}',
-    '!**/coverage/**',
-    '!**/node_modules/**',
-    '!**/babel.config.js',
-    '!**/jest.setup.js',
-    '!**/babel.test.config.js',
-  ],
-  globals: { __DEV__: true },
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  watchPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 };
