@@ -1,33 +1,36 @@
 import { View, Text, Switch } from "react-native";
 import { useAuth } from "@/providers/AuthProvider";
-import tw from '@/lib/tw';
-import { Button } from '@/components/ui/Button';
-import Container from '@/components/layout/Container';
-import Heading from '@/components/ui/Heading';
-import TextMuted from '@/components/ui/TextMuted';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { getDefaultLevel } from '@/lib/prefs';
-import type { ExamLevel } from '@/types/level';
-import { useRouter } from 'expo-router';
+import tw from "@/lib/tw";
+import { Button } from "@/components/ui/Button";
+import Container from "@/components/layout/Container";
+import Heading from "@/components/ui/Heading";
+import TextMuted from "@/components/ui/TextMuted";
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/Card";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Hook correcto
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+
   const [dark, setDark] = useState(false);
   const [useCloud, setUseCloud] = useState(false);
-  const [defaultLevel, setDefaultLevelState] = useState<ExamLevel | null>(null);
+
+  // 🔹 Leemos el nivel desde el hook (propiedad certificationLevel)
+  const { certificationLevel: examLevel } = useUserPreferences();
 
   useEffect(() => {
     (async () => {
       try {
-        const pref = await AsyncStorage.getItem('ui:theme');
-        setDark(pref === 'dark');
-        const cloud = await AsyncStorage.getItem('dev:cloudExam');
-        setUseCloud(cloud == null ? true : cloud === 'true');
-        const lvl = await getDefaultLevel();
-        setDefaultLevelState(lvl);
+        const pref = await AsyncStorage.getItem("ui:theme");
+        setDark(pref === "dark");
+
+        const cloud = await AsyncStorage.getItem("dev:cloudExam");
+        setUseCloud(cloud == null ? true : cloud === "true");
       } catch {}
     })();
   }, []);
@@ -36,7 +39,7 @@ export default function SettingsScreen() {
     const next = !dark;
     setDark(next);
     try {
-      await AsyncStorage.setItem('ui:theme', next ? 'dark' : 'light');
+      await AsyncStorage.setItem("ui:theme", next ? "dark" : "light");
     } catch {}
   };
 
@@ -44,7 +47,7 @@ export default function SettingsScreen() {
     const next = !useCloud;
     setUseCloud(next);
     try {
-      await AsyncStorage.setItem('dev:cloudExam', next ? 'true' : 'false');
+      await AsyncStorage.setItem("dev:cloudExam", next ? "true" : "false");
     } catch {}
   };
 
@@ -64,7 +67,7 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      {process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' ? (
+      {process.env.EXPO_PUBLIC_USE_SUPABASE === "true" ? (
         <Card style={tw`mt-4 p-4`}>
           <Text style={tw`font-semibold`}>Desarrollo</Text>
           <View style={tw`mt-3 flex-row items-center justify-between`}>
@@ -80,15 +83,26 @@ export default function SettingsScreen() {
       <Card style={tw`mt-4 p-4`}>
         <Text style={tw`font-semibold`}>Preferencias</Text>
         <View style={tw`mt-3`}>
-          <Text style={tw`font-medium`}>Nivel de examen por defecto: <Text style={tw`font-semibold`}>{defaultLevel ?? 'B2'}</Text></Text>
+          <Text style={tw`font-medium`}>
+            Nivel de examen por defecto:{" "}
+            <Text style={tw`font-semibold`}>{examLevel}</Text>
+          </Text>
           <TextMuted>Puedes cambiarlo cuando quieras.</TextMuted>
-          <Button title="Cambiar nivel" onPress={() => router.push('/onboarding/level?edit=true' as any)} style={tw`mt-3`} />
+          <Button
+            title="Cambiar nivel"
+            onPress={() => router.push("/onboarding/level?edit=true" as any)}
+            style={tw`mt-3`}
+          />
         </View>
       </Card>
 
       <Card style={tw`mt-4 p-4`}>
         <Text style={tw`font-semibold`}>Cuenta</Text>
-        <Button title="Cerrar sesión" onPress={signOut} style={[tw`mt-3`, { backgroundColor: '#ef4444' }]} />
+        <Button
+          title="Cerrar sesión"
+          onPress={signOut}
+          style={[tw`mt-3`, { backgroundColor: "#ef4444" }]}
+        />
       </Card>
     </Container>
   );
