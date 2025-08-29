@@ -1,9 +1,9 @@
 // Basic test to verify Jest setup
-function sum(a: number, b: number): number {
-  return a + b;
-}
+describe('Basic Test 2', () => {
+  function sum(a: number, b: number): number {
+    return a + b;
+  }
 
-describe('Basic Test', () => {
   it('should add two numbers', () => {
     expect(sum(1, 2)).toBe(3);
   });

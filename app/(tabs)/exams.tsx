@@ -43,7 +43,7 @@ export default function ExamsScreen() {
 
   // Memoized options with proper typing
   const options = useMemo(() =>
-    EXAM_OPTIONS.map(option => ({
+    EXAM_OPTIONS.map((option: typeof EXAM_OPTIONS[0]) => ({
       ...option,
       title: option.id === 'complete' ? `Mock ${examLevel} ${option.title.toLowerCase()}` : option.title,
     })), [examLevel]
@@ -125,13 +125,13 @@ export default function ExamsScreen() {
           <View style={tw`mt-6 gap-3`}>
             {options.map((option) => (
               <ActionCard
-                key={option.id}
                 small
                 title={option.title}
                 subtitle={option.description}
                 icon={option.icon as any}
                 tone="primary"
                 onPress={() => handleOptionPress(option)}
+                key={option.id}
               />
             ))}
           </View>
