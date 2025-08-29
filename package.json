@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc -p . --noEmit",
     "build": "npm run build:web",
-    "build:web": "expo export --platform web --dump-sourcemap --non-interactive",
+    "build:web": "cross-env CI=1 expo export --platform web --dump-sourcemap",
     "serve:dist": "npx serve dist -l 4173",
     "clean:metro": "node -e \"const fs=require('fs'); const os=require('os'); const p=require('path'); const tmp=os.tmpdir(); ['metro-cache','metro-file-map'].forEach(d=>{try{fs.rmSync(p.join(tmp,d),{recursive:true,force:true})}catch{}}); console.log('🧹 Cleared Metro cache in temp dir');\"",
     "dev:vercel": "cross-env-shell \"serve -s dist -l $PORT\""
@@ -64,6 +64,7 @@
     "@types/react": "~19.0.10",
     "@typescript-eslint/eslint-plugin": "^7.13.1",
     "@typescript-eslint/parser": "^7.13.1",
+    "ajv": "^8.17.1",
     "babel-jest": "^30.0.5",
     "babel-plugin-module-resolver": "^5.0.2",
     "cross-env": "^10.0.0",
