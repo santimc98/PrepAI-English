@@ -1,0 +1,41 @@
+﻿{
+  "model": "qwen2.5:7b-instruct",
+  "stream": false,
+  "format": {
+    "type": "object",
+    "required": ["id","title","level","sections","items","createdAt"],
+    "properties": {
+      "id":       { "type": "string" },
+      "title":    { "type": "string" },
+      "level":    { "type": "string", "enum": ["B1","B2","C1","C2"] },
+      "sections": { "type": "array", "items": { "type": "string", "enum": ["Reading","Use of English","Listening","Writing","Speaking"] } },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id","type","prompt","section"],
+          "properties": {
+            "id":      { "type": "string" },
+            "type":    { "type": "string", "enum": ["mcq","gap","open"] },
+            "prompt":  { "type": "string" },
+            "options": { "type": "array", "items": { "type": "string" } },
+            "answer":  {},
+            "section": { "type": "string", "enum": ["Reading","Use of English","Listening","Writing","Speaking"] },
+            "points":  { "type": "number" }
+          }
+        }
+      },
+      "createdAt": { "type": "number" }
+    }
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an expert Cambridge English exam generator. Return ONLY one JSON object that strictly matches the provided JSON schema in 'format'. No markdown, no backticks, no commentary."
+    },
+    {
+      "role": "user",
+      "content": "{\"level\":\"B2\",\"sections\":[\"Reading\",\"Use of English\"],\"itemsPerSection\":2,\"rules\":[\"For MCQ include 4 options and put the correct index in 'answer' (0-based)\",\"For GAP provide a sentence with one blank and a single-word answer\",\"For OPEN give a concise writing/speaking-style prompt\",\"Keep prompts in English\",\"Ensure section labels are EXACT: 'Reading','Use of English','Listening','Writing','Speaking'\"]}"
+    }
+  ]
+}

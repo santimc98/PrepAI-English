@@ -19,6 +19,7 @@ export default function AuthCallbackScreen() {
         '';
       try {
         if (code) {
+          if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') return;
           await supabase.auth.exchangeCodeForSession(code as any);
         }
       } catch (e) {

@@ -24,19 +24,30 @@ function RootNavigationGate() {
   const router = useRouter();
   const { session, initializing } = useAuth();
 
+  // ⬇️ NUEVO: bandera build-time para saltar el guard si Supabase está OFF
+  const supabaseOn = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
+
   useEffect(() => {
     if (initializing) return;
+
     const inAuthGroup = segments[0] === "(auth)";
+
+    // ⬇️ BYPASS: si Supabase está desactivado, no obligamos a login
+    if (!supabaseOn) {
+      // si el usuario entra en rutas de (auth), lo mandamos a tabs
+      if (inAuthGroup) router.replace("/(tabs)");
+      return;
+    }
+
+    // ⬇️ LÓGICA ORIGINAL (solo cuando Supabase está ON)
     if (!session && !inAuthGroup) {
       router.replace("/(auth)/login" as any);
     } else if (session && inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [segments, router, session, initializing]);
+  }, [segments, router, session, initializing, supabaseOn]);
 
-  // Effect-only gate to redirect based on auth; do not render another navigator here.
-  return null;
-
+  return null; // solo efectos
 }
 
 function LevelGate() {

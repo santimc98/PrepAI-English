@@ -1,136 +1,195 @@
 // app/(tabs)/exams.tsx
-import React, { useMemo, useState } from 'react';
-import { View, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useMemo, useState, useCallback } from 'react';
+import { View, Text, ScrollView } from 'react-native';
 import tw from '@/lib/tw';
 import Container from '@/components/layout/Container';
 import Heading from '@/components/ui/Heading';
 import TextMuted from '@/components/ui/TextMuted';
-import { Button } from '@/components/ui/Button';
+import EnhancedButton from '@/components/ui/EnhancedButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import ActionCard from '@/components/ui/ActionCard';
 import Sheet from '@/components/ui/Sheet';
-import { useToast } from '@/providers/Toast';
-import { getExam } from '@/lib/exams';
+import ErrorDisplay from '@/components/ui/ErrorDisplay';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useExamGeneration } from '@/hooks/useExamGeneration';
+import { useAccessibility } from '@/hooks/useAccessibility';
+import { EXAM_OPTIONS, DEFAULT_SECTIONS } from '@/constants/examOptions';
 import type { ExamLevel } from '@/types/level';
+import type { ExamSection } from '@/types/exam';
+
+interface PendingExam {
+  id: string;
+  title: string;
+  sections: ExamSection[];
+  description: string;
+  estimatedDuration: string;
+}
 
 export default function ExamsScreen() {
-  const router = useRouter();
-  const toast = useToast();
+  const { announceForAccessibility } = useAccessibility();
 
-  // ← nivel reactivo desde el store unificado
+  // User preferences with proper typing
   const { certificationLevel } = useUserPreferences();
-  const level = certificationLevel;
-  const examLevel: ExamLevel = (level === 'A2' ? 'B1' : (level as ExamLevel));
+  const examLevel: ExamLevel = useMemo(() => {
+    return certificationLevel === 'A2' ? 'B1' : (certificationLevel as ExamLevel);
+  }, [certificationLevel]);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // State management
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [pending, setPending] = useState<null | { title: string; sections: string[] }>(null);
+  const [pending, setPending] = useState<PendingExam | null>(null);
 
-  const options = useMemo(
-    () => [
-      {
-        title: `Mock ${examLevel} completo`,
-        icon: 'document-text' as const,
-        sections: ['Reading', 'Use of English', 'Listening'],
-      },
-      { title: 'Solo Listening', icon: 'volume-high' as const, sections: ['Listening'] },
-      { title: 'Solo Reading', icon: 'book' as const, sections: ['Reading', 'Use of English'] },
-    ],
-    [examLevel]
+  // Exam generation hook
+  const { generateExam, state, resetError, canRetry } = useExamGeneration();
+
+  // Memoized options with proper typing
+  const options = useMemo(() =>
+    EXAM_OPTIONS.map(option => ({
+      ...option,
+      title: option.id === 'complete' ? `Mock ${examLevel} ${option.title.toLowerCase()}` : option.title,
+    })), [examLevel]
   );
+
+  // Event handlers
+  const handleOptionPress = useCallback((option: typeof options[0]) => {
+    const pendingExam: PendingExam = {
+      id: option.id,
+      title: option.title,
+      sections: option.sections,
+      description: option.description,
+      estimatedDuration: option.estimatedDuration,
+    };
+    setPending(pendingExam);
+    setSheetOpen(true);
+    announceForAccessibility(`Seleccionaste ${option.title}`);
+  }, [announceForAccessibility]);
+
+  const handleStartExam = useCallback(async () => {
+    if (!pending) return;
+
+    await generateExam({
+      sections: pending.sections,
+      level: examLevel,
+    });
+
+    setSheetOpen(false);
+    setPending(null);
+  }, [pending, examLevel, generateExam]);
+
+  const handleQuickGenerate = useCallback(async () => {
+    await generateExam({
+      sections: DEFAULT_SECTIONS,
+      level: examLevel,
+    });
+  }, [examLevel, generateExam]);
+
+  const handleSheetClose = useCallback(() => {
+    setSheetOpen(false);
+    setPending(null);
+  }, []);
+
+  const handleRetry = useCallback(async () => {
+    if (pending) {
+      await handleStartExam();
+    } else {
+      await handleQuickGenerate();
+    }
+  }, [pending, handleStartExam, handleQuickGenerate]);
 
   return (
     <Container>
-      <Heading>Simulacros</Heading>
-      <TextMuted>Genera un simulacro rápido de ejemplo</TextMuted>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Heading>Simulacros</Heading>
+        <TextMuted>Genera un simulacro rápido de ejemplo</TextMuted>
 
-      {error ? <Text style={{ color: '#dc2626' }}>{error}</Text> : null}
+        {/* Error Display */}
+        {state.error && (
+          <ErrorDisplay
+            error={state.error}
+            onRetry={canRetry ? handleRetry : undefined}
+            onDismiss={resetError}
+            canRetry={canRetry}
+          />
+        )}
 
-      {loading ? (
-        <View style={tw`mt-3`}>
-          <Skeleton height={18} />
-          <View style={tw`mt-2`}>
-            <Skeleton height={18} />
+        {/* Loading Skeleton */}
+        {state.loading && (
+          <View style={tw`mt-4`}>
+            <Skeleton height={56} style={tw`mb-3`} />
+            <Skeleton height={56} style={tw`mb-3`} />
+            <Skeleton height={56} />
           </View>
-        </View>
-      ) : null}
+        )}
 
-      <View style={tw`mt-4 flex-row flex-wrap gap-3`}>
-        {options.map((opt) => (
-          <View key={opt.title} style={{ flexBasis: '100%', maxWidth: '100%' }}>
-            <ActionCard
-              small
-              title={opt.title}
-              icon={opt.icon}
-              tone="primary"
-              onPress={() => {
-                setPending({ title: opt.title, sections: opt.sections });
-                setSheetOpen(true);
-              }}
+        {/* Exam Options */}
+        {!state.loading && (
+          <View style={tw`mt-6 gap-3`}>
+            {options.map((option) => (
+              <ActionCard
+                key={option.id}
+                small
+                title={option.title}
+                subtitle={option.description}
+                icon={option.icon as any}
+                tone="primary"
+                onPress={() => handleOptionPress(option)}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Quick Generate Button */}
+        {!state.loading && (
+          <View style={tw`mt-6`}>
+            <EnhancedButton
+              title={`Generar Mock ${examLevel} Completo`}
+              onPress={handleQuickGenerate}
+              loading={state.loading}
+              variant="secondary"
+              size="large"
+              accessibilityLabel={`Generar examen completo nivel ${examLevel}`}
+              accessibilityHint="Genera un examen con todas las secciones"
             />
           </View>
-        ))}
-      </View>
+        )}
 
-      <Sheet visible={sheetOpen} title={pending?.title} onClose={() => setSheetOpen(false)}>
-        <Text style={tw`mb-2`}>Descripción breve del mock:</Text>
-        <TextMuted>Duración estimada: 45–60 min • Secciones: {pending?.sections.join(', ')}</TextMuted>
-        <View style={tw`mt-4 flex-row gap-3`}>
-          <Button
-            title={loading ? 'Generando...' : 'Comenzar'}
-            onPress={async () => {
-              if (!pending) return;
-              setLoading(true);
-              setError(null);
-              try {
-                // ← se pasa el nivel elegido
-                const exam = await getExam({ sections: pending.sections as any, level: examLevel });
-                try { toast.success('Examen generado'); } catch {}
-                setSheetOpen(false);
-                router.push({
-                  pathname: '/exam/[id]' as any,
-                  params: { id: exam.id, data: JSON.stringify(exam) },
-                } as any);
-              } catch (e: any) {
-                setError(e?.message || 'No se pudo generar el examen');
-                try { toast.error('No se pudo generar el examen'); } catch {}
-              } finally {
-                setLoading(false);
-              }
-            }}
-          />
-          <Button title="Cancelar" onPress={() => setSheetOpen(false)} />
-        </View>
-      </Sheet>
+        {/* Confirmation Sheet */}
+        <Sheet
+          visible={sheetOpen}
+          title={pending?.title || 'Confirmar Examen'}
+          onClose={handleSheetClose}
+        >
+          {pending && (
+            <View>
+              <Text style={tw`mb-3 text-base leading-6`}>
+                {pending.description}
+              </Text>
+              <TextMuted style={tw`mb-4`}>
+                Duración estimada: {pending.estimatedDuration} • Secciones: {pending.sections.join(', ')}
+              </TextMuted>
 
-      <Button
-        title={loading ? 'Generando...' : `Generar Mock ${examLevel}`}
-        onPress={async () => {
-          setLoading(true);
-          setError(null);
-          try {
-            // ← se pasa el nivel elegido
-            const exam = await getExam({
-              sections: ['Reading', 'Use of English', 'Listening'] as any,
-              level: examLevel,
-            });
-            try { toast.success('Examen generado'); } catch {}
-            router.push({
-              pathname: '/exam/[id]' as any,
-              params: { id: exam.id, data: JSON.stringify(exam) },
-            } as any);
-          } catch (e: any) {
-            setError(e?.message || 'No se pudo generar el examen');
-            try { toast.error('No se pudo generar el examen'); } catch {}
-          } finally {
-            setLoading(false);
-          }
-        }}
-        style={tw`mt-4`}
-      />
+              <View style={tw`flex-row gap-3`}>
+                <EnhancedButton
+                  title="Comenzar"
+                  onPress={handleStartExam}
+                  loading={state.loading}
+                  variant="primary"
+                  style={tw`flex-1`}
+                  accessibilityLabel="Comenzar examen"
+                  accessibilityHint="Inicia el examen seleccionado"
+                />
+                <EnhancedButton
+                  title="Cancelar"
+                  onPress={handleSheetClose}
+                  variant="outline"
+                  disabled={state.loading}
+                  style={tw`flex-1`}
+                  accessibilityLabel="Cancelar y cerrar"
+                />
+              </View>
+            </View>
+          )}
+        </Sheet>
+      </ScrollView>
     </Container>
   );
 }

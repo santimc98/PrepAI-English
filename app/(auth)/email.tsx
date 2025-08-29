@@ -43,6 +43,9 @@ export default function EmailAuthScreen() {
     setAlert(null);
     setLoading(true);
     try {
+      if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') {
+        throw new Error('Supabase auth is disabled in this build');
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       router.replace('/(tabs)');

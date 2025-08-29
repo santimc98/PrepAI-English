@@ -25,10 +25,23 @@ type GetExamOpts = {
 export async function getExam(opts: GetExamOpts): Promise<Exam> {
   const level: ExamLevel = opts.level ?? 'B2';
 
-  const useCloud =
-    process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' &&
-    !!supabase;
+  const useCloud = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true' && !!supabase;
+  const useVercelApi = process.env.EXPO_PUBLIC_USE_VERCEL_API === 'true';
 
+  // 1) Vercel local /api (rewrite -> microservidor)
+  if (useVercelApi) {
+    try {
+      const exam = await withTimeout(
+        generateExamViaApi({ level, sections: opts.sections }),
+        90_000
+      );
+      if (exam) return exam;
+    } catch (e) {
+      console.warn('[exams] /api failed, falling back:', e);
+    }
+  }
+
+  // 2) Supabase Edge (si lo tienes activado)
   if (useCloud) {
     try {
       const exam = await withTimeout(
@@ -40,8 +53,11 @@ export async function getExam(opts: GetExamOpts): Promise<Exam> {
       console.warn('[exams] Edge failed, falling back to mock:', e);
     }
   }
+
+  // 3) Mock local como último recurso
   return generateMockExam(level, opts.sections);
 }
+
 
 // -------- Edge Function ----------
 async function generateExamViaEdge(params: {
@@ -64,6 +80,24 @@ async function generateExamViaEdge(params: {
   const json = await res.json();
   return { ...json, level: params.level } as Exam;
 }
+
+// -------- Vercel API Function ----------
+async function generateExamViaApi(params: {
+  level: ExamLevel;
+  sections: ExamSection[];
+}): Promise<Exam> {
+  // En web basta con ruta relativa; Vercel dev hace rewrite al microservidor (8787)
+  const res = await fetch('/api/generate-exam', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ level: params.level, sections: params.sections }),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const json = await res.json();
+  // Asegura el level (por si el backend no lo puso)
+  return { ...json, level: params.level } as Exam;
+}
+
 
 // -------- Mock local ----------
 export function generateMockExam(

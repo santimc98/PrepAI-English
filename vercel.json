@@ -1,4 +1,9 @@
 {
+  "installCommand": "npm ci",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "devCommand": "npm run dev:vercel",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/generate-exam", "destination": "http://localhost:8787/api/generate-exam" }
+  ]
 }

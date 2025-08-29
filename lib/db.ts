@@ -1,7 +1,16 @@
 import { supabase } from '@/lib/supabase';
 import type { ExamLevel } from '@/types/level';
 
+// Aserción tipada: después de llamarla, TS sabe que `supabase` no es undefined
+function assertSupabase(client: typeof supabase): asserts client is NonNullable<typeof supabase> {
+  const enabled = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
+  if (!enabled || !client) {
+    throw new Error('Supabase is disabled in this build');
+  }
+}
+
 export async function upsertProfile(u: { id: string; email?: string | null; display_name?: string | null }) {
+  assertSupabase(supabase);
   try {
     const { error } = await supabase.from('profiles').upsert({
       id: u.id,
@@ -19,6 +28,7 @@ export async function createAttempt(params: {
   examId?: string | null;
   examSnapshot: any;
 }) {
+  assertSupabase(supabase);
   const { data, error } = await supabase
     .from('attempts')
     .insert({
@@ -39,6 +49,7 @@ export async function saveAnswer(row: {
   correct?: boolean | null;
   points?: number | null;
 }) {
+  assertSupabase(supabase);
   const { error } = await supabase.from('attempt_answers').insert({
     attempt_id: row.attemptId,
     question_id: row.questionId,
@@ -50,6 +61,7 @@ export async function saveAnswer(row: {
 }
 
 export async function finishAttempt(attemptId: string, score?: number | null) {
+  assertSupabase(supabase);
   const { error } = await supabase
     .from('attempts')
     .update({ finished_at: new Date().toISOString(), score: score ?? null })
@@ -58,6 +70,7 @@ export async function finishAttempt(attemptId: string, score?: number | null) {
 }
 
 export async function listMyAttempts() {
+  assertSupabase(supabase);
   const { data, error } = await supabase
     .from('attempts')
     .select('*')
@@ -67,6 +80,7 @@ export async function listMyAttempts() {
 }
 
 export async function getAttemptWithAnswers(attemptId: string) {
+  assertSupabase(supabase);
   const { data: attempt, error: err1 } = await supabase
     .from('attempts')
     .select('*')
@@ -83,6 +97,7 @@ export async function getAttemptWithAnswers(attemptId: string) {
 }
 
 export async function updateDefaultLevel(level: ExamLevel) {
+  assertSupabase(supabase);
   try {
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;
@@ -95,6 +110,7 @@ export async function updateDefaultLevel(level: ExamLevel) {
 }
 
 export async function getProfileDefaultLevel(): Promise<ExamLevel | null> {
+  assertSupabase(supabase);
   try {
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;

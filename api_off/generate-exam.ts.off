@@ -1,0 +1,355 @@
+// api/generate-exam.ts
+// Vercel Serverless Function (Node.js 20)
+// Requiere variables: EXAM_AI_BASE_URL, EXAM_AI_API_KEY, EXAM_AI_MODEL
+
+type ExamLevel = 'B1' | 'B2' | 'C1' | 'C2';
+type ExamSection = 'Reading' | 'Use of English' | 'Listening' | 'Writing' | 'Speaking';
+
+type ExamItem = {
+  id: string;
+  type: 'mcq' | 'gap' | 'open';
+  prompt: string;
+  options?: string[];
+  answer?: any;
+  section: ExamSection;
+  points?: number;
+};
+
+type Exam = {
+  id: string;
+  title: string;
+  level?: ExamLevel;
+  sections?: ExamSection[];
+  items: ExamItem[];
+  createdAt?: number;
+};
+
+function nowId(prefix = 'exam'): string {
+  const t = Date.now();
+  return `${prefix}-${t}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function coerceSection(s: string): ExamSection {
+  const m = s.trim().toLowerCase();
+  if (m.includes('use')) return 'Use of English';
+  if (m.startsWith('read')) return 'Reading';
+  if (m.startsWith('listen')) return 'Listening';
+  if (m.startsWith('writ')) return 'Writing';
+  if (m.startsWith('speak')) return 'Speaking';
+  // Por defecto, mantenemos 'Reading'
+  return 'Reading';
+}
+
+function fallbackExam(level: ExamLevel, sections: ExamSection[]): Exam {
+  const ts = Date.now();
+  const secs = sections.length ? sections : (['Reading', 'Use of English', 'Listening'] as ExamSection[]);
+  const items: ExamItem[] = [
+    {
+      id: `mcq-${ts}`,
+      type: 'mcq',
+      prompt: `[${level}] Choose the correct option to complete the sentence.`,
+      options: ['A', 'B', 'C', 'D'],
+      answer: 1,
+      section: 'Reading',
+      points: 1,
+    },
+    {
+      id: `gap-${ts}`,
+      type: 'gap',
+      prompt: `[${level}] Fill the gap with the correct form of the word in brackets.`,
+      answer: 'example',
+      section: 'Use of English',
+      points: 1,
+    },
+  ];
+  return {
+    id: nowId('fallback'),
+    title: `Simulacro ${level}`,
+    level,
+    sections: secs,
+    items,
+    createdAt: ts,
+  };
+}
+
+// ------- Proveedor: OLLAMA local -------
+async function callOllama(payload: { level: ExamLevel; sections: string[] }): Promise<Exam> {
+  const base = (process.env.EXAM_AI_BASE_URL || 'http://localhost:11434').replace(/\/+$/, '');
+  const model = process.env.EXAM_AI_MODEL || 'qwen2.5:7b-instruct';
+
+  // JSON Schema (mismo shape que tu types/exam.ts)
+  const schema = {
+    type: 'object',
+    required: ['id','title','level','sections','items','createdAt'],
+    properties: {
+      id: { type: 'string' },
+      title: { type: 'string' },
+      level: { enum: ['B1','B2','C1','C2'] },
+      sections: { type: 'array', items: { enum: ['Reading','Use of English','Listening','Writing','Speaking'] } },
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['id','type','prompt','section'],
+          properties: {
+            id: { type: 'string' },
+            type: { enum: ['mcq','gap','open'] },
+            prompt: { type: 'string' },
+            options: { type: 'array', items: { type: 'string' } },
+            answer: {},
+            section: { enum: ['Reading','Use of English','Listening','Writing','Speaking'] },
+            points: { type: 'number' }
+          }
+        }
+      },
+      createdAt: { type: 'number' }
+    }
+  };
+
+  const system = 'You are an expert Cambridge English exam generator. Return ONLY one JSON object strictly matching the provided JSON schema in format. No markdown.';
+  const user = {
+    level: payload.level,
+    sections: payload.sections,
+    itemsPerSection: 2,
+    rules: [
+      "For MCQ include 4 options and put the correct index in 'answer' (0-based)",
+      "For GAP provide a sentence with one blank and a single-word answer",
+      "For OPEN give a concise writing/speaking-style prompt",
+      "Keep prompts in English",
+      "Use exact section labels"
+    ]
+  };
+
+  const res = await fetch(`${base}/api/chat`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      stream: false,
+      format: schema,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: JSON.stringify(user) }
+      ]
+    })
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Ollama ${res.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await res.json(); // { message: { content: "<JSON>" }, ...}
+  const content = data?.message?.content;
+  if (!content || typeof content !== 'string') throw new Error('Empty content from Ollama');
+
+  const parsed = JSON.parse(content);
+  const lvl = (parsed.level || payload.level) as ExamLevel;
+  const secs = Array.isArray(parsed.sections) ? parsed.sections.map((s: string) => coerceSection(s)) : payload.sections.map(coerceSection);
+  const itemsRaw = Array.isArray(parsed.items) ? parsed.items : [];
+
+  const items: ExamItem[] = itemsRaw.slice(0, 10).map((it: any, idx: number) => ({
+    id: String(it.id ?? `it-${idx}-${Date.now()}`),
+    type: (it.type === 'mcq' || it.type === 'gap' || it.type === 'open') ? it.type : 'open',
+    prompt: String(it.prompt ?? 'Write a short answer.'),
+    options: Array.isArray(it.options) ? it.options.map(String).slice(0, 6) : undefined,
+    answer: it.answer,
+    section: coerceSection(it.section || secs[0] || 'Reading'),
+    points: typeof it.points === 'number' ? it.points : 1
+  }));
+
+  if (!items.length) throw new Error('No items generated by Ollama');
+
+  return {
+    id: String(parsed.id ?? nowId('ollama')),
+    title: String(parsed.title ?? `Mock ${lvl}`),
+    level: lvl,
+    sections: secs as ExamSection[],
+    items,
+    createdAt: typeof parsed.createdAt === 'number' ? parsed.createdAt : Date.now()
+  };
+}
+
+async function callOpenAICompat(payload: {
+  level: ExamLevel;
+  sections: string[];
+}): Promise<Exam> {
+  const base = process.env.EXAM_AI_BASE_URL; // p. ej. https://api.together.xyz/v1
+  const key = process.env.EXAM_AI_API_KEY;
+  const model = process.env.EXAM_AI_MODEL; // p. ej. meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo
+
+  if (!base || !key || !model) {
+    throw new Error('Missing EXAM_AI_* environment variables');
+  }
+
+  const system = [
+    'You are an expert Cambridge English exam generator.',
+    'Return ONLY a single JSON object following the schema given below; no markdown, no comments.',
+    'The JSON must be strictly valid and parseable.',
+  ].join(' ');
+
+  // Schema minimal que la app entiende
+  const schemaHint = {
+    type: 'object',
+    required: ['id', 'title', 'level', 'sections', 'items', 'createdAt'],
+    properties: {
+      id: { type: 'string' },
+      title: { type: 'string' },
+      level: { enum: ['B1', 'B2', 'C1', 'C2'] },
+      sections: { type: 'array', items: { enum: ['Reading', 'Use of English', 'Listening', 'Writing', 'Speaking'] } },
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['id', 'type', 'prompt', 'section'],
+          properties: {
+            id: { type: 'string' },
+            type: { enum: ['mcq', 'gap', 'open'] },
+            prompt: { type: 'string' },
+            options: { type: 'array', items: { type: 'string' } },
+            answer: {},
+            section: { enum: ['Reading', 'Use of English', 'Listening', 'Writing', 'Speaking'] },
+            points: { type: 'number' },
+          },
+        },
+      },
+      createdAt: { type: 'number' },
+    },
+  };
+
+  const user = {
+    instructions: 'Generate a Cambridge-style mini mock exam.',
+    constraints: {
+      language: 'English prompts',
+      difficultyByLevel: true,
+      itemsPerSection: 2,
+      mcqOptions: 4,
+      ensureSectionsOrder: true,
+    },
+    input: {
+      level: payload.level,
+      sections: payload.sections,
+    },
+    output_schema: schemaHint,
+    notes: [
+      'For MCQ, include a short question and 4 options, with the correct index in "answer".',
+      'For GAP, provide a sentence with a gap and a single-word answer.',
+      'For OPEN, write a short prompt; "answer" may be omitted.',
+      'All "section" values must be exactly one of the supported labels.',
+      'Keep it concise; ~2 items per requested section.',
+    ],
+  };
+
+  const res = await fetch(`${base.replace(/\/+$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.7,
+      stream: false,
+      response_format: { type: 'json_object' }, // muchos proveedores openai-compat lo soportan
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: JSON.stringify(user) },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Provider ${res.status}: ${text.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  const content = json?.choices?.[0]?.message?.content;
+  if (!content || typeof content !== 'string') {
+    throw new Error('Empty model content');
+  }
+
+  // Parse con tolerancia
+  let parsed: any;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    // Intento de extraer primer bloque JSON
+    const match = content.match(/\{[\s\S]*\}$/);
+    if (!match) throw new Error('Model output not JSON');
+    parsed = JSON.parse(match[0]);
+  }
+
+  // Normalizaciones mínimas
+  const lvl = (parsed.level || payload.level) as ExamLevel;
+  const secs = Array.isArray(parsed.sections) ? parsed.sections.map((s: string) => coerceSection(s)) : payload.sections.map(coerceSection);
+  const itemsRaw = Array.isArray(parsed.items) ? parsed.items : [];
+
+  const items: ExamItem[] = itemsRaw
+    .slice(0, 10) // tope de seguridad
+    .map((it: any, idx: number) => {
+      const type = it.type === 'mcq' || it.type === 'gap' || it.type === 'open' ? it.type : 'open';
+      const section = coerceSection(it.section || secs[0] || 'Reading');
+      return {
+        id: String(it.id ?? `${type}-${idx}-${Date.now()}`),
+        type,
+        prompt: String(it.prompt ?? 'Write a short answer.'),
+        options: Array.isArray(it.options) ? it.options.map(String).slice(0, 6) : undefined,
+        answer: it.answer,
+        section,
+        points: typeof it.points === 'number' ? it.points : 1,
+      };
+    });
+
+  const exam: Exam = {
+    id: String(parsed.id ?? nowId('ai')),
+    title: String(parsed.title ?? `Mock ${lvl}`),
+    level: lvl,
+    sections: secs as ExamSection[],
+    items,
+    createdAt: typeof parsed.createdAt === 'number' ? parsed.createdAt : Date.now(),
+  };
+
+  // Validaciones básicas
+  if (!exam.items.length) throw new Error('No items generated');
+  return exam;
+}
+
+export default async function handler(req: any, res: any) {
+  try {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    const { level, sections } = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) ?? {};
+    const validLevels = new Set<ExamLevel>(['B1', 'B2', 'C1', 'C2']);
+    const lvl: ExamLevel = validLevels.has(level) ? level : 'B2';
+    const secs: ExamSection[] = Array.isArray(sections) && sections.length
+      ? sections.map((s: string) => coerceSection(s)) as ExamSection[]
+      : (['Reading', 'Use of English', 'Listening'] as ExamSection[]);
+
+    // 1) Intento con el proveedor seleccionado
+    const provider = (process.env.EXAM_AI_PROVIDER || 'openai_compat').toLowerCase();
+
+    try {
+    const aiExam = provider === 'ollama'
+        ? await callOllama({ level: lvl, sections: secs })
+        : await callOpenAICompat({ level: lvl, sections: secs });
+
+    return res.status(200).json(aiExam);
+    } catch (e: any) {
+    console.warn('[api/generate-exam] provider failed, fallback to mock:', e?.message || e);
+    }
+
+    // 2) Fallback sólido
+    const fb = fallbackExam(lvl, secs);
+    return res.status(200).json(fb);
+  } catch (e: any) {
+    console.error('[api/generate-exam] fatal:', e?.stack || e);
+    return res.status(500).json({
+      error: 'internal_error',
+      message: e?.message || 'Unknown error'
+    });
+  }
+}

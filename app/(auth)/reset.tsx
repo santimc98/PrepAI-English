@@ -63,6 +63,9 @@ export default function ResetScreen() {
     setAlert(null);
     setLoading(true);
     try {
+      if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') {
+        throw new Error('Supabase auth is disabled in this build');
+      }
       await supabase.auth.resetPasswordForEmail(email, { redirectTo: getRedirectTo() });
       setAlert({ type: 'success', text: 'Te hemos enviado un email para restablecer tu contraseña' });
     } catch (e: any) {

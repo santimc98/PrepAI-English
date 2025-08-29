@@ -26,79 +26,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (isMounted) {
-        setSession(data.session ?? null);
-        setInitializing(false);
+  let isMounted = true;
+
+  // Si Supabase está desactivado o no inicializado, termina init y sal.
+  if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') {
+    setInitializing(false);
+    return () => { isMounted = false; };
+  }
+
+  (async () => {
+    const { data } = await supabase.auth.getSession();
+    if (isMounted) {
+      setSession(data.session ?? null);
+      setInitializing(false);
+    }
+  })();
+
+  const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    setSession(newSession);
+
+    // Crear/actualizar perfil si hay sesión y está habilitado
+    if (newSession?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
+      try {
+        await upsertProfile({
+          id: newSession.user.id,
+          email: newSession.user.email,
+          display_name: newSession.user.user_metadata?.full_name || newSession.user.user_metadata?.name,
+        });
+      } catch (e) {
+        console.warn('[AuthProvider] Failed to upsert profile:', e);
       }
-    })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      
-      // Crear/actualizar perfil si hay sesión y USE_SUPABASE está habilitado
-      if (newSession?.user && process.env.EXPO_PUBLIC_USE_SUPABASE === 'true') {
-        try {
-          await upsertProfile({
-            id: newSession.user.id,
-            email: newSession.user.email,
-            display_name: newSession.user.user_metadata?.full_name || newSession.user.user_metadata?.name,
-          });
-        } catch (e) {
-          console.warn('[AuthProvider] Failed to upsert profile:', e);
-        }
-
-        // Sync default_level between profile and local prefs
-        try {
-          const cloudLevel = await getProfileDefaultLevel();
-          if (cloudLevel) {
-            await setDefaultLevel(cloudLevel);
-          } else {
-            const localLevel = await getDefaultLevel();
-            if (localLevel) {
-              await updateDefaultLevel(localLevel);
-            }
+      // Sync default_level
+      try {
+        const cloudLevel = await getProfileDefaultLevel();
+        if (cloudLevel) {
+          await setDefaultLevel(cloudLevel);
+        } else {
+          const localLevel = await getDefaultLevel();
+          if (localLevel) {
+            await updateDefaultLevel(localLevel);
           }
-        } catch (e) {
-          console.warn('[AuthProvider] default_level sync failed:', e);
         }
-      }
-    });
-    return () => {
-      isMounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-
-  const signInWithProvider = useCallback(async (provider: OAuthProvider) => {
-    const redirectTo =
-      Platform.OS === 'web'
-        ? Linking.createURL('auth/callback')
-        : AuthSession.makeRedirectUri({ scheme: 'prepaienglish', path: 'auth/callback' });
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo,
-        skipBrowserRedirect: Platform.OS !== 'web' ? true : false,
-        queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined,
-      },
-    });
-    if (error) throw error;
-    if (data?.url) {
-      if (Platform.OS === 'web') {
-        // Redirigir el navegador directamente
-        window.location.assign(data.url);
-      } else {
-        await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      } catch (e) {
+        console.warn('[AuthProvider] default_level sync failed:', e);
       }
     }
-  }, []);
+  });
 
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
+  return () => {
+    isMounted = false;
+    sub.subscription.unsubscribe();
+  };
+}, []);
+
+  const signInWithProvider = useCallback(async (provider: OAuthProvider) => {
+  if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') {
+    throw new Error('Supabase auth is disabled');
+  }
+  const redirectTo =
+    Platform.OS === 'web'
+      ? Linking.createURL('auth/callback')
+      : AuthSession.makeRedirectUri({ scheme: 'prepaienglish', path: 'auth/callback' });
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+      skipBrowserRedirect: Platform.OS !== 'web' ? true : false,
+      queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined,
+    },
+  });
+  if (error) throw error;
+  if (data?.url) {
+    if (Platform.OS === 'web') {
+      window.location.assign(data.url);
+    } else {
+      await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    }
+  }
+}, []);
+
+const signOut = useCallback(async () => {
+  if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') return;
+  await supabase.auth.signOut();
+}, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({ session, user: session?.user ?? null, initializing, signInWithProvider, signOut }),

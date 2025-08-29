@@ -88,7 +88,14 @@ export default function SignupScreen() {
     setAlert(null);
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+      if (!supabase || process.env.EXPO_PUBLIC_USE_SUPABASE !== 'true') {
+        throw new Error('Supabase auth is disabled in this build');
+      }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: redirectTo }
+      });
       if (error) throw error;
       setAlert({ type: 'success', text: 'Cuenta creada. Revisa tu correo para confirmar.' });
       // Opcional: router.replace('/(auth)/login');
